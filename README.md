@@ -109,6 +109,7 @@ Analyzer ожидает CSV по пути `data/reference.csv` (в контей�
 cp /path/to/your.csv data/reference.csv
 
 # вариант B: скачать по URL из .env (DATASET_URL=...)
+# в .env уже есть ссылка на демонстрационный датасет
 uv run python tools/get_demo_data.py
 ```
 
@@ -116,7 +117,7 @@ uv run python tools/get_demo_data.py
 
 ### 3. Config
 
-Checked-in `config/config.yaml` мониторит `age`, `income`, `country` и `prediction_score` . Для другого датасета сгенерируйте конфиг:
+Checked-in `config/config.yaml` для демонстрационного датасета из .env мониторит `age`, `income`, `country` и `prediction_score` . Для другого датасета сгенерируйте конфиг:
 
 ```bash
 uv run python tools/build_config.py

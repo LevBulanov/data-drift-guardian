@@ -15,9 +15,6 @@ htmlcov/
 # Jupyter
 .ipynb_checkpoints/
 
-# Локальные переменные окружения
-.env
-.env.*
 
 # IDE и системные файлы
 .idea/
