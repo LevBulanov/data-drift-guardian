@@ -43,10 +43,10 @@ templates:
       {{ end }}
 
       {{ if gt (len .Alerts.Resolved) 0 }}
-      ✅ <b>RESOLVED</b>
+      ✅ <b>SEVERITY CONDITION CLEARED</b>
       <b>{{ index .CommonLabels "alertname" }}</b>
 
-      The alert condition is no longer met for:
+      This severity condition is no longer met for:
       {{ range .Alerts.Resolved }}• <code>{{ index .Labels $listLabel }}</code>
       {{ end }}
       {{ end }}
@@ -66,10 +66,10 @@ templates:
       <b>Action:</b> {{ . }}{{ end }}
 
       {{ else }}
-      ✅ <b>RESOLVED</b>
+      ✅ <b>SEVERITY CONDITION CLEARED</b>
       <b>{{ index .Labels "alertname" }}</b>
 
-      The alert condition is no longer met. The current status has returned to normal.
+      This severity condition is no longer met. The signal may have recovered or moved to another severity.
       {{ with index .Labels "feature" }}
       <b>Feature:</b> <code>{{ . }}</code>{{ end }}
       {{ end }}

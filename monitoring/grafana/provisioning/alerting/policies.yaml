@@ -16,7 +16,7 @@ policies:
               - critical
           group_wait: 1m
           group_interval: 1m
-          repeat_interval: 1m
+          repeat_interval: 4h
         - receiver: Drift Guardian Alerts Telegram
           object_matchers:
             - - service
@@ -29,7 +29,7 @@ policies:
             - working-hours
           group_wait: 1m
           group_interval: 1m
-          repeat_interval: 1m
+          repeat_interval: 4h
       group_wait: 30s
       group_interval: 5m
       repeat_interval: 4h
