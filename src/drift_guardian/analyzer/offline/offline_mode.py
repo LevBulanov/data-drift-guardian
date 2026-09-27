@@ -95,7 +95,7 @@ class OfflineWrapper:
     def analyze_df(self, current: pd.DataFrame):
         logger.info("Starting analyze_df for current.shape=%s", getattr(current, "shape", None))
         logger.debug("Validating current DataFrame schema via SchemaChecker")
-        self.checker.check_df(current)
+        current = self.checker.check_df(current)
 
         logger.debug("Running DriftMetricsEngine.analyze_dataframe")
         report = self.engine.analyze_dataframe(current[list(self.required_features)])
@@ -118,7 +118,7 @@ class OfflineWrapper:
             max_samples, n_splits, random_state, missing_category, lightgbm_params,
         )
         logger.debug("Validating current DataFrame schema via SchemaChecker")
-        self.checker.check_df(current)
+        current = self.checker.check_df(current)
 
         logger.debug("Running DriftMetricsEngine.run_adversarial_validation")
         av_report = self.engine.run_adversarial_validation(current=current[list(self.required_features)],

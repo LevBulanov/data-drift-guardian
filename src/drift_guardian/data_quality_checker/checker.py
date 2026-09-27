@@ -1,44 +1,73 @@
+from __future__ import annotations
+
 import logging
 from datetime import datetime
-from typing import Optional, Any
+from typing import Any, Optional
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 from pydantic import BaseModel, ValidationError, create_model
 
-logger = logging.getLogger("schema_checker")
+logger = logging.getLogger(__name__)
+
 
 class SchemaChecker:
     """
-    Проверяет входящие события (dict из Kafka) или целые DataFrame'ы
-    на соответствие схеме референсного pd.DataFrame.
+    Валидатор событий из Kafka и батчей (окон) против референсного DataFrame.
 
-    check_event  — per-event валидация через pydantic (значения + типы).
-    check_df     — батчевая валидация DataFrame по dtypes колонок
-                   (быстрее, но проверяет только типы, не значения).
+    Политика: null — это данные. Значения None/NaN проходят проверку
+    и уезжают в анализ как есть (обрабатываются ниже по потоку).
+    Чекер ловит только нарушения КОНТРАКТА:
+      - отсутствующая required-колонка;
+      - несовместимый dtype (дробные в int-колонке, строки в числах,
+        не-bool в bool-колонке);
+      - structurally битые события (не dict);
+      - отсутствующий/невалидный time_column в event.
 
-    Ограничения:
-      - nullable-int типы pandas (Int8, Int16, ..., Int64) не поддерживаются
-        и приведут к ошибке при построении схемы — считаем, что в референсе
-        их быть не должно.
-      - datetime-колонки запрещены везде, кроме одной сконфигурированной
-        колонки времени kafka-события (по умолчанию "event_time").
+    required_cols означает "колонка обязана присутствовать",
+    но НЕ "значения обязаны быть не-null".
+
+    ВРЕМЯ: reference_df/df НЕ должны содержать никаких datetime-колонок
+    вообще. Время существует только как time_column внутри отдельного
+    event (Kafka-сообщение) и проверяется вручную в check_event, а не
+    через pydantic-схему, построенную из reference_df.
     """
 
-    PANDAS_TO_PY = {
-        "int8": int, "int16": int, "int32": int, "int64": int,
-        "uint8": int, "uint16": int, "uint32": int, "uint64": int,
-        "float16": float, "float32": float, "float64": float,
+    PANDAS_TO_PY: dict[str, type] = {
+        "int64": int,
+        "int32": int,
+        "int16": int,
+        "int8": int,
+        "uint64": int,
+        "uint32": int,
+        "uint16": int,
+        "uint8": int,
+        "float64": float,
+        "float32": float,
         "bool": bool,
         "object": str,
-        "category": str,
+        "string": str,
+        "str": str,  # pandas >= 2.1 с future.infer_string, дефолт в 3.0
+        # datetime64[ns] сюда сознательно не входит: в reference_df/df
+        # временных колонок быть не должно вообще.
     }
 
-    UNSUPPORTED_DTYPES = {
-        "Int8", "Int16", "Int32", "Int64",
-        "UInt8", "UInt16", "UInt32", "UInt64",
-        "boolean",
-    }
+    # Nullable extension dtypes запрещены ТОЛЬКО в референсе: их наличие
+    # означает, что пропуски замаскированы под тип. Входные данные могут
+    # иметь любые dtypes — они нормализуются или честно отбраковываются.
+    UNSUPPORTED_DTYPES = (
+        pd.Int8Dtype,
+        pd.Int16Dtype,
+        pd.Int32Dtype,
+        pd.Int64Dtype,
+        pd.UInt8Dtype,
+        pd.UInt16Dtype,
+        pd.UInt32Dtype,
+        pd.UInt64Dtype,
+        pd.BooleanDtype,
+        pd.Float32Dtype,
+        pd.Float64Dtype,
+    )
 
     def __init__(
         self,
@@ -46,125 +75,362 @@ class SchemaChecker:
         required_cols: Optional[set[str]] = None,
         time_column: str = "event_time",
         raise_on_missing_required: bool = True,
-    ):
+        raise_on_dtype_mismatch: bool = True,
+    ) -> None:
         self.reference_df = reference_df
-        self.required_cols = required_cols or set()
+        self.required_cols = set(required_cols) if required_cols else set()
         self.time_column = time_column
         self.raise_on_missing_required = raise_on_missing_required
+        self.raise_on_dtype_mismatch = raise_on_dtype_mismatch
 
-        self.reference_columns = set(reference_df.columns)
-        self.schema_model: type[BaseModel] = self._build_schema_model()
+        self.reference_columns: set[str] = set(reference_df.columns)
+        self.reference_dtypes: dict[str, Any] = dict(reference_df.dtypes)
 
-    def check_event(self, event: dict[str, Any]) -> tuple[bool, Optional[dict[str, Any]], Optional[str]]:
-        """
-        Валидирует одно событие.
+        self.schema_model = self._build_schema_model()
 
-        :return: (is_valid, validated_dict | None, error_message | None)
-        """
-        try:
-            self._check_columns_coverage(set(event.keys()), source_desc="event")
-            validated = self.schema_model(**event)
-        except (ValidationError, ValueError) as e:
-            logger.warning(f"Schema mismatch: {e}")
-            return False, None, str(e)
+    # ------------------------------------------------------------------
+    # Построение схемы
+    # ------------------------------------------------------------------
 
-        return True, validated.model_dump(), None
-
-    def check_df(self, df: pd.DataFrame) -> None:
-        """
-        Валидирует целиком DataFrame (батч событий) на соответствие
-        референсной схеме. В отличие от check_event, проверяет только
-        dtypes колонок целиком, а не значения построчно через pydantic —
-        значительно быстрее для больших DataFrame.
-
-        Ничего не возвращает при успешной проверке (тихо проходит).
-
-        :param df: DataFrame для проверки
-        :raises ValueError: если отсутствует required-колонка либо её dtype
-                             не совпадает с референсным (и raise_on_missing_required=True)
-        """
-        self._check_columns_coverage(set(df.columns), source_desc="DataFrame")
-        self._check_dtypes_df(df)
-
-    def _resolve_py_type(self, col: str, dtype: np.dtype) -> type:
+    def _resolve_py_type(self, dtype: Any, col: str) -> type:
         dtype_str = str(dtype)
 
-        if dtype_str in self.UNSUPPORTED_DTYPES:
+        for unsupported in self.UNSUPPORTED_DTYPES:
+            if isinstance(dtype, unsupported):
+                raise ValueError(
+                    f"Column '{col}' has unsupported nullable dtype "
+                    f"'{dtype_str}'. Nullable extension dtypes mask real "
+                    f"gaps as data — use plain numpy dtypes in the "
+                    f"reference DataFrame."
+                )
+
+        # reference_df/df НЕ должны содержать datetime-колонки вообще.
+        if pd.api.types.is_datetime64_any_dtype(dtype):
             raise ValueError(
-                f"Column '{col}' has unsupported nullable dtype '{dtype_str}'. "
-                f"Nullable int/bool types are not supported by SchemaChecker."
+                f"Column '{col}' has datetime dtype '{dtype_str}', but "
+                f"reference_df/df must not contain datetime columns at "
+                f"all. Only the configured time_column "
+                f"('{self.time_column}') is allowed to carry time, and "
+                f"only inside individual events."
             )
 
-        if pd.api.types.is_datetime64_any_dtype(dtype):
-            if col != self.time_column:
-                raise ValueError(
-                    f"Column '{col}' has datetime dtype, but only the configured "
-                    f"time_column='{self.time_column}' is allowed to be datetime."
-                )
-            return datetime
+        # StringDtype во всех вариантах хранения (python/pyarrow):
+        # str(dtype) даёт "string", "string[pyarrow]" или "str" в
+        # зависимости от версии и бэкенда — надёжнее проверять типом.
+        if isinstance(dtype, pd.StringDtype):
+            return str
 
-        # pandas StringDtype — extension dtype; его строковое представление
-        # зависит от версии pandas (например, "string" или "str").
-        if pd.api.types.is_string_dtype(dtype):
+        # CategoricalDtype — сам по себе не входит в numpy/pandas dtype-map
+        # по имени ('category' не является числовым/строковым именем),
+        # поэтому проверяем через isinstance, а не через PANDAS_TO_PY.get.
+        # Категории считаем str: если реальные категории не строковые
+        # (например, числовые бины) — это отдельный, более редкий кейс,
+        # который здесь не поддерживаем явно.
+        if isinstance(dtype, pd.CategoricalDtype):
             return str
 
         py_type = self.PANDAS_TO_PY.get(dtype_str)
         if py_type is None:
             raise ValueError(
-                f"Column '{col}' has unmapped dtype '{dtype_str}'. "
-                f"Add it explicitly to PANDAS_TO_PY."
+                f"Reference column '{col}' has unmapped dtype "
+                f"'{dtype_str}'. Supported: {sorted(self.PANDAS_TO_PY)}"
             )
         return py_type
 
     def _build_schema_model(self) -> type[BaseModel]:
-        fields = {}
-        for col, dtype in self.reference_df.dtypes.items():
-            py_type = self._resolve_py_type(col, dtype)
-            if col in self.required_cols:
-                fields[col] = (py_type, ...)
-            else:
-                fields[col] = (Optional[py_type], None)
+        """
+        Строит pydantic-модель по референсу.
+
+        Все поля Optional: null — это данные, pydantic не должен
+        отбраковывать события из-за None. Nullability отслеживается
+        отдельными warning'ами, а не валидацией.
+
+        time_column в эту модель не входит — он проверяется отдельно
+        в check_event, т.к. reference_df не должен содержать datetime.
+        """
+        fields: dict[str, tuple[Any, Any]] = {}
+        for col, dtype in self.reference_dtypes.items():
+            py_type = self._resolve_py_type(dtype, col)
+            fields[col] = (Optional[py_type], None)
         return create_model("EventSchema", **fields)
 
-    def _check_columns_coverage(self, present_columns: set[str], source_desc: str = "event") -> None:
-        missing = self.reference_columns - present_columns
-        missing_required = missing & self.required_cols
-        missing_optional = missing - self.required_cols
+    # ------------------------------------------------------------------
+    # Проверка покрытия колонок
+    # ------------------------------------------------------------------
 
+    def _check_columns_coverage(
+        self,
+        present_columns: set[str],
+        source_desc: str,
+    ) -> None:
+        """
+        Отсутствие required-колонки — сломанный контракт -> ValueError.
+        Отсутствие optional-колонки — warning.
+        """
+        missing_required = self.required_cols - present_columns
         if missing_required:
-            msg = f"Missing REQUIRED columns in {source_desc}: {missing_required}"
+            msg = (
+                f"REQUIRED columns missing in {source_desc}: "
+                f"{sorted(missing_required)}"
+            )
             logger.error(msg)
             if self.raise_on_missing_required:
                 raise ValueError(msg)
 
+        missing_optional = self.reference_columns - present_columns - missing_required
         if missing_optional:
             logger.warning(
-                f"Missing optional columns in {source_desc} (excluded from drift calc): {missing_optional}"
+                f"Missing optional columns in {source_desc}: "
+                f"{sorted(missing_optional)} (excluded from drift calc)"
+            )
+
+    # ------------------------------------------------------------------
+    # Совместимость dtypes
+    # ------------------------------------------------------------------
+
+    def _dtypes_compatible(
+            self,
+            got: Any,
+            ref: Any,
+            col: str,
+            df: pd.DataFrame,
+    ) -> bool:
+        """
+        Логическая совместимость dtype входа с референсным.
+
+        Ключевые случаи, которые считаются СОВМЕСТИМЫМИ:
+          - числовой вход поверх числового референса (float64 из-за
+            None -> np.nan при сборке df из dict'ов — норма), при
+            условии что в int-референс не приехали дробные значения;
+          - object с True/None поверх bool-референса (bool + None
+            не даёт float64, pandas даёт object);
+          - object/string/category-вход поверх category-референса,
+            при условии что значения в принципе строковые (сама природа
+            категорий — конечный набор строковых меток).
+
+        Несовместимые: дробные значения в int-референсе, строки в
+        числовых колонках, не-bool значения в bool-колонке, не-строковые
+        значения в category-колонке.
+        """
+        # category-референс: вход может быть object/string/category —
+        # не коэрсим (см. _coerce_to_reference), поэтому проверяем
+        # совместимость по факту, что не-null значения — строки.
+        if isinstance(ref, pd.CategoricalDtype):
+            if isinstance(got, pd.CategoricalDtype):
+                return True
+            if not (pd.api.types.is_string_dtype(got) or pd.api.types.is_object_dtype(got)):
+                return False
+            values = df[col].dropna()
+            if values.empty:
+                return True
+            return values.map(lambda v: isinstance(v, str)).all()
+
+        if pd.api.types.is_string_dtype(ref) and pd.api.types.is_string_dtype(got):
+            return True
+
+        # Числовой вход поверх числового референса.
+        if pd.api.types.is_numeric_dtype(got) and pd.api.types.is_numeric_dtype(ref):
+            # В int-референс не должны приезжать дробные: 25.0 — это int,
+            # а 25.5 — реальное нарушение контракта.
+            if pd.api.types.is_integer_dtype(ref):
+                values = df[col].dropna()
+                if not values.empty and not (values % 1 == 0).all():
+                    return False
+            return True
+
+        # bool-референс, object-вход (смесь True/None). Проверяем, что
+        # все не-null значения — настоящие bool, а не строки "True"/"false":
+        # astype(bool) на строках молча даёт True — тихая подмена данных.
+        if pd.api.types.is_bool_dtype(ref):
+            values = df[col].dropna()
+            if values.empty:
+                return True
+            return values.map(lambda v: isinstance(v, (bool, np.bool_))).all()
+
+        return False
+
+    # ------------------------------------------------------------------
+    # Нормализация DataFrame
+    # ------------------------------------------------------------------
+
+    def _coerce_to_reference(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Приводит dtypes к референсным, где это безопасно.
+
+        Снимает ложные mismatch'и вида float64-vs-int64 для колонок
+        БЕЗ пропусков. Колонки с NaN остаются как есть — их пропустит
+        _dtypes_compatible (null — это данные).
+
+        bool-референс не коэрсится вовсе: astype("bool") на None даёт
+        False, на строках "false" — True. Оба случая — тихая подмена
+        данных, поэтому bool-вход проверяется только через
+        _dtypes_compatible.
+
+        category-референс тоже не коэрсится: astype(CategoricalDtype(...))
+        молча превращает в NaN любое значение входа, не входящее в набор
+        категорий референса (например, новую категорию, появившуюся в
+        продакшене после того, как reference_df был зафиксирован) — это
+        тихая потеря данных, а не безопасная нормализация типа.
+        """
+        df = df.copy()
+        for col, ref_dtype in self.reference_dtypes.items():
+            if col not in df.columns:
+                continue
+            if pd.api.types.is_dtype_equal(df[col].dtype, ref_dtype):
+                continue
+            if pd.api.types.is_bool_dtype(ref_dtype):
+                continue
+            if isinstance(ref_dtype, pd.CategoricalDtype):
+                continue
+
+            # float -> int коэрсим только если все значения целые
+            # (1.0, 2.0, NaN). Реальные дробные (1.5) — нарушение
+            # контракта, а не то, что можно тихо округлить astype'ом.
+            if pd.api.types.is_integer_dtype(ref_dtype) and pd.api.types.is_float_dtype(df[col].dtype):
+                values = df[col].dropna()
+                if not values.empty and not (values % 1 == 0).all():
+                    continue
+
+            try:
+                df[col] = df[col].astype(ref_dtype)
+            except (ValueError, TypeError):
+                pass
+        return df
+
+    def _check_nulls_df(self, df: pd.DataFrame) -> None:
+        """
+        Информирует о пропусках. Данные НЕ модифицирует:
+        null — это данные, обрабатываются ниже по потоку.
+        """
+        cols = [c for c in self.reference_columns if c in df.columns]
+        if not cols:
+            return
+
+        null_counts = df[cols].isna().sum()
+        bad = null_counts[null_counts > 0]
+        if bad.empty:
+            return
+
+        bad_required = sorted(set(bad.index) & self.required_cols)
+        bad_optional = sorted(set(bad.index) - self.required_cols)
+        if bad_required:
+            logger.warning(
+                f"NULLs in REQUIRED columns (passed through, "
+                f"handled downstream): {null_counts[bad_required].to_dict()}"
+            )
+        if bad_optional:
+            logger.warning(
+                f"NULLs in optional columns: {null_counts[bad_optional].to_dict()}"
             )
 
     def _check_dtypes_df(self, df: pd.DataFrame) -> None:
-        for col, expected_dtype in self.reference_df.dtypes.items():
+        """
+        Проверяет логическую совместимость dtypes с референсом.
+        """
+        for col, ref_dtype in self.reference_dtypes.items():
             if col not in df.columns:
                 continue
+            if self._dtypes_compatible(df[col].dtype, ref_dtype, col, df):
+                continue
 
-            actual_dtype = df[col].dtype
-
-            # Для category сравниваем только "форму" типа, а не конкретный
-            # набор категорий/ordered — иначе разные наборы значений
-            # ошибочно считаются несовместимыми типами.
-            if isinstance(expected_dtype, pd.CategoricalDtype):
-                dtypes_match = isinstance(actual_dtype, pd.CategoricalDtype)
+            msg = (
+                f"Column '{col}' dtype mismatch: expected '{ref_dtype}', "
+                f"got '{df[col].dtype}'"
+            )
+            if col in self.required_cols:
+                logger.error(msg)
+                if self.raise_on_dtype_mismatch:
+                    raise ValueError(msg)
             else:
-                dtypes_match = pd.api.types.is_dtype_equal(actual_dtype, expected_dtype)
+                logger.warning(msg)
 
-            if not dtypes_match:
-                msg = (
-                    f"Column '{col}' dtype mismatch: "
-                    f"expected '{expected_dtype}', got '{actual_dtype}'"
+    # ------------------------------------------------------------------
+    # Публичный API: батч
+    # ------------------------------------------------------------------
+
+    def check_df(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Валидирует DataFrame (окно событий). Null'ы проходят как данные.
+
+        Порядок:
+          1. покрытие колонок (отсутствие required -> ValueError);
+          2. коэрсинг dtypes, где безопасно (чистит float64-vs-int64
+             без пропусков);
+          3. warning о null'ах (данные не модифицируются);
+          4. проверка логической совместимости dtypes.
+
+        :return: DataFrame (может быть копией после коэрсинга —
+                 используйте возвращаемое значение).
+        :raises ValueError: отсутствует required-колонка либо
+                            несовместимый dtype required-колонки
+                            (при raise_on_* = True).
+        """
+        self._check_columns_coverage(set(df.columns), source_desc="DataFrame")
+
+        df = self._coerce_to_reference(df)
+        self._check_nulls_df(df)
+        self._check_dtypes_df(df)
+        return df
+
+    # ------------------------------------------------------------------
+    # Публичный API: одно событие
+    # ------------------------------------------------------------------
+
+    def check_event(
+        self,
+        event: Any,
+    ) -> tuple[bool, Optional[dict[str, Any]], Optional[str]]:
+        """
+        Валидирует одно событие (dict из Kafka). Null'ы проходят как данные.
+
+        time_column обязателен всегда (даже если не входит в
+        required_cols) и должен быть настоящим datetime — это
+        единственное место, где время в принципе допускается в контракте.
+
+        :return: (is_valid, validated_dict, error_message)
+        """
+        # Tombstone / неудачная десериализация: event=None.
+        if not isinstance(event, dict):
+            msg = f"Event must be a dict, got {type(event).__name__} (tombstone?)"
+            logger.warning(msg)
+            return False, None, msg
+
+        if self.time_column not in event:
+            msg = f"Missing time_column '{self.time_column}' in event"
+            logger.error(msg)
+            return False, None, msg
+
+        time_value = event[self.time_column]
+        if not isinstance(time_value, (pd.Timestamp, datetime)):
+            msg = (
+                f"time_column '{self.time_column}' must be datetime, "
+                f"got {type(time_value).__name__}: {time_value!r}"
+            )
+            logger.error(msg)
+            return False, None, msg
+
+        try:
+            self._check_columns_coverage(set(event.keys()), source_desc="event")
+
+            # Null'ы — только информирование, семантика совпадает с check_df.
+            null_cols = {k for k, v in event.items() if v is None}
+            null_required = sorted(null_cols & self.required_cols)
+            if null_required:
+                logger.warning(
+                    f"Null REQUIRED fields in event (passed through): {null_required}"
                 )
-                if col in self.required_cols:
-                    logger.error(msg)
-                    if self.raise_on_missing_required:
-                        raise ValueError(msg)
-                else:
-                    logger.warning(msg)
+            null_optional = sorted(null_cols - self.required_cols)
+            if null_optional:
+                logger.warning(f"Null optional fields in event: {null_optional}")
+
+            validated = self.schema_model(**event)
+        except (ValidationError, ValueError, TypeError) as exc:
+            logger.warning(f"Schema mismatch: {exc}")
+            return False, None, str(exc)
+
+        validated_dict = validated.model_dump()
+        # time_column не входит в schema_model (reference_df без datetime),
+        # поэтому pydantic его отбросит как лишнее поле — докладываем вручную.
+        validated_dict[self.time_column] = time_value
+        return True, validated_dict, None
+

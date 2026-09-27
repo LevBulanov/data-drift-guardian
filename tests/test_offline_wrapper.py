@@ -112,6 +112,7 @@ def install_offline_wrapper_fakes(
             self.checked_dfs.append(df)
             if self.error is not None:
                 raise self.error
+            return df
 
     class FakeDriftMetricsEngine:
         def __init__(self, config, reference_profile):
