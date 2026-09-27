@@ -1,0 +1,27 @@
+global:
+  scrape_interval: 5s
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets:
+          - localhost:9090
+
+  # Mock and realtime have separate targets, while Grafana/alerting keep the
+  # public job="drift-exporter" contract. The standard instance label identifies
+  # which exporter produced each historical series; no extra display label is added.
+  - job_name: drift-exporter-realtime
+    static_configs:
+      - targets:
+          - analyzer:8000
+    relabel_configs:
+      - target_label: job
+        replacement: drift-exporter
+
+  - job_name: drift-exporter-mock
+    static_configs:
+      - targets:
+          - drift-mock-exporter:8000
+    relabel_configs:
+      - target_label: job
+        replacement: drift-exporter

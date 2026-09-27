@@ -1,5 +1,33 @@
-# Локальные исходные датасеты
-data/train_transaction.csv
+# Локальные датасеты
+/data/*.csv
+/data/*.parquet
 
-# Служебные файлы macOS
+# Python-окружение и кэши
+.venv/
+myenv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Jupyter
+.ipynb_checkpoints/
+
+
+# IDE и системные файлы
+.idea/
+.vscode/
 .DS_Store
+
+# Сгенерированные отчёты и резервные копии
+/reports/*.html
+/monitoring/grafana/backup/
+
+
+config/config.experiment.yaml
+monitoring/grafana/alerting-export/
+reports/mock_drift_report backup.json
+yulia_notes/

@@ -1,0 +1,225 @@
+/* Responsive offline report styles, aligned with the customer churn notebook. */
+:root {
+    color-scheme: light;
+    --background: #f7f7f8;
+    --surface: #ffffff;
+    --surface-soft: #fafafa;
+    --border: #dddddd;
+    --border-soft: #eeeeee;
+    --text: #222222;
+    --muted: #828282;
+
+    --passed: #1e8846;
+    --passed-background: #f0faf3;
+    --passed-border: #91c9a3;
+    --passed-text: #166534;
+
+    --warning: #e58a00;
+    --warning-background: #fff8eb;
+    --warning-border: #e8bd70;
+    --warning-text: #c07300;
+
+    --critical: #df3651;
+    --critical-background: #fff1f3;
+    --critical-border: #e99aaa;
+    --critical-text: #a91f39;
+
+    --unknown: #92929d;
+    --unknown-background: #f4f4f5;
+    --unknown-border: #d4d4d8;
+    --unknown-text: #52525b;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    background: var(--background);
+    color: var(--text);
+    font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    line-height: 1.45;
+}
+
+.report-container {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: clamp(18px, 3vw, 42px);
+}
+
+.report-header { margin-bottom: 24px; }
+h1, h2, h3 { margin-top: 0; }
+
+.report-header {
+    margin-bottom: 12px;
+}
+
+.report-header + .report-section {
+    margin-top: 16px;
+}
+
+h1 {
+    margin-bottom: 12px;
+    font-size: clamp(28px, 4vw, 42px);
+    line-height: 1.15;
+}
+
+h2 { margin-bottom: 16px; font-size: 22px; }
+h3 {
+    margin-bottom: 12px;
+    color: #42424b;
+    font-size: 14px;
+    text-transform: lowercase;
+}
+
+.report-context {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 24px;
+    color: #555555;
+    font-size: 13px;
+}
+
+.monitoring-features {
+    margin-top: 10px;
+    padding: 10px 14px;
+    border: 1px solid var(--border-soft);
+    border-radius: 8px;
+    background: var(--surface-soft);
+    color: #555555;
+    font-size: 13px;
+}
+
+.feature-list { margin: 6px 0 0 18px; padding: 0; }
+
+.report-section {
+    margin: 16px 0;
+    padding: 18px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+}
+
+.card-grid { display: flex; flex-wrap: wrap; gap: 12px; }
+
+.summary-card {
+    display: flex;
+    height: 70px;
+    flex-direction: column;
+    padding: 6px 10px;
+    border: 1px solid var(--surface);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--text);
+}
+
+/* Colored report-status cards. */
+.summary-card-overall {
+    width: 240px;
+    min-width: 200px;
+    max-width: 240px;
+    flex: 1 1 160px;
+}
+.summary-card-overall .summary-label { padding: 4px 0 3px;}
+
+/* White metric cards. */
+.summary-card-alert {
+    min-width: 100px;
+    max-width: 150px;
+    flex: 1 1 100px;
+    align-items: center;
+    text-align: center;
+}
+.summary-card-alert .summary-label {
+    max-width: 150px;
+    font-size: 12px;
+    line-height: 1.2;
+    text-wrap: balance;
+    white-space: pre-line;
+}
+.summary-card-alert .summary-details {color: var(--muted); font-size: 10px;}
+.summary-label { font-size: 14px;}
+.summary-value { padding: 2px 0 2px; font-size: 28px; line-height: 1; }
+.summary-details { min-height: 20px; font-size: 12px;  }
+.status-passed { border-color: var(--passed-border); background: var(--passed-background); color: var(--passed-text); }
+.status-warning { border-color: var(--warning-border); background: var(--warning-background); color: var(--warning-text); }
+.status-critical { border-color: var(--critical-border); background: var(--critical-background); color: var(--critical-text); }
+.status-unknown { border-color: var(--unknown-border); background: var(--unknown-background); color: var(--unknown-text); }
+
+.feature-group { margin-top: 28px; }
+.feature-group:first-of-type { margin-top: 8px; }
+.table-wrapper { width: 100%; overflow-x: auto; }
+
+table {
+    width: 100%;
+    min-width: max-content;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+th, td {
+    min-width: 90px;
+    padding: 6px 8px;
+    border-right: 1px solid var(--border-soft);
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+}
+
+th:last-child, td:last-child { border-right: 0; }
+thead th { color: #6f6f79; font-size: 13px; font-weight: 650; white-space: nowrap; }
+.status-column { width: 60px; min-width: 60px; text-align: center; }
+.feature-name { min-width: 180px; font-weight: 650; }
+
+.status-dot { display: inline-block; width: 14px; height: 14px; border-radius: 50%; }
+.status-dot-passed { background: var(--passed); }
+.status-dot-warning { background: var(--warning); }
+.status-dot-critical { background: var(--critical); }
+.status-dot-unknown { background: var(--unknown); }
+
+.metric-value {
+    display: flex;
+    align-items: center;
+    font-size: 17px;
+    font-weight: 550;
+    white-space: nowrap;
+}
+
+.status-text-passed { color: var(--passed); }
+.status-text-warning { color: var(--warning); }
+.status-text-critical { color: var(--critical); }
+.status-text-unknown { color: var(--unknown); }
+
+.metric-thresholds {
+    display: flex;
+    min-height: 12px;
+    gap: 8px;
+    color: var(--muted);
+    font-size: 10px;
+    white-space: nowrap;
+}
+
+/* Threshold positioning inside white metric cards. */
+.metric-thresholds-card { margin-top: 3px; }
+
+/* Threshold positioning inside feature-table cells. */
+.metric-thresholds-table { margin-top: 0px; padding-top:0px;}
+
+.threshold { display: inline-flex; align-items: center; gap: 4px; }
+.threshold-marker { display: inline-block; width: 1.5px; height: 8px; }
+.threshold-warning .threshold-marker { background: var(--warning); }
+.threshold-critical .threshold-marker { background: var(--critical); }
+
+.feature-importance-table { width: auto; }
+.feature-importance-table th,
+.feature-importance-table td {
+    min-width: 70px;
+    padding: 3px 6px;
+    font-size: 12px;
+}
+.muted { color: var(--muted); }
+
+@media (max-width: 720px) {
+    .report-container { padding: 14px; }
+    .report-section { padding: 14px; }
+    .summary-card { min-width: min(100%, 150px); }
+}
