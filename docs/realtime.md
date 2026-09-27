@@ -79,15 +79,19 @@ drift_analysis_runs_total
 
 ## Некорректные отдельные сообщения
 
-Отдельные Kafka messages отбрасываются, не доходя до окна, если у них:
+До `WindowBuffer` выполняется только event-level проверка формата сообщения. Отдельный Kafka message отбрасывается, если:
 
-- невалидный JSON;
-- не проходит schema validation;
-- отсутствует или некорректен event time.
+- payload не является валидным JSON-объектом;
+- `event_id` отсутствует или имеет неподдерживаемый тип;
+- нет ни одной feature;
+- значение feature не является JSON-скаляром или содержит не конечное `float`-значение;
+- `event_time` отсутствует, не является timezone-aware ISO-8601 строкой или не парсится.
 
-Такие сообщения **не добавляются в analysis window** и не влияют на drift-метрики. Их доля отражается в stream-health метриках, в частности `drift_invalid_event_time_rate`.
+Такие сообщения **не добавляются в analysis window**. При этом `drift_invalid_event_time_rate` учитывает только сообщения с невалидным `event_time`; остальные структурно некорректные сообщения видны в логах consumer, но в эту rate-метрику не входят.
 
-Отличие от bad window: здесь отбрасывается одно сообщение, окно продолжает набираться. При bad window теряется весь набор из `WINDOW_SIZE` событий.
+Полная schema validation относительно reference выполняется позже, когда собрано полное окно: `OfflineWrapper.analyze_df()` вызывает `SchemaChecker.check_df()` для `pandas.DataFrame`. Отсутствие configured required-column или несовместимый dtype приводят уже к ошибке **всего analysis window**; такое окно логируется как `analysis failed`, отбрасывается, offset коммитится и consumer продолжает работу.
+
+Отличие от bad window: при event-level ошибке отбрасывается одно сообщение и окно продолжает набираться; при schema/Core ошибке после заполнения окна теряется весь набор из `WINDOW_SIZE` принятых событий.
 
 ---
 
@@ -148,7 +152,7 @@ stream_drift:
 
 Остальные stream-метрики (`window_time_span`, `max_event_gap`, `invalid_event_time_rate`) публикуются, но в статус не входят, пока для них не заданы thresholds.
 
-> Отдельного Grafana alert rule для `drift_stream_status` в текущем provisioning нет — см. [docs/alerting.md](alerting.md).
+Grafana provisioning содержит отдельные правила `Stream Health – Warning` и `Stream Health – Critical`. Они не читают агрегированный `drift_stream_status` напрямую: правила сравнивают пять raw stream-gauges с соответствующими `drift_stream_threshold{metric,level}` и создают отдельный alert instance для каждой настроенной `(instance, metric)`. Подробности — в [docs/alerting.md](alerting.md).
 
 ---
 
@@ -168,6 +172,8 @@ WINDOW_SIZE × средний интервал между событиями
 ```
 
 Для локального demo — около 200 секунд, поэтому значение выше ~400 секунд заслуживает внимания.
+
+В Grafana provisioning это покрыто двумя System Health rules: `Drift Exporter – Unavailable` (`exporterdown01`, `for: 1m`) следит за доступностью exporter target, а `Drift Analysis – Stale` (`analysisstale01`, `for: 1m`) — за тем, что возраст последнего `drift_report_timestamp_seconds` не превысил 400 секунд.
 
 ---
 

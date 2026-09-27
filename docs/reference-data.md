@@ -18,19 +18,19 @@ Reference dataset задаёт «норму». Все drift-метрики (PSI,
 
 ## Локальный файл
 
-Analyzer читает CSV по пути из переменной окружения:
+Analyzer умеет читать reference из `.csv` и `.parquet`. Путь задаётся переменной окружения:
 
 ```env
 REFERENCE_DATA_PATH=/app/data/reference.csv
 ```
 
-Это значение Compose использует по умолчанию. На хосте файлу соответствует:
+Compose по умолчанию использует CSV-вариант. На хосте файлу соответствует:
 
 ```text
 data/reference.csv
 ```
 
-reference-файла в свежем клоне репозитория **нет** — его нужно подготовить самостоятельно.
+reference-файла в свежем клоне репозитория **нет** — его нужно подготовить самостоятельно. Для Parquet можно указать другой путь, например `REFERENCE_DATA_PATH=/app/data/reference.parquet`; файл должен быть доступен внутри volume `./data:/app/data`.
 
 > Файл должен существовать **до запуска analyzer**. При его отсутствии контейнер не стартует с ошибкой `reference dataset not found`.
 
@@ -114,7 +114,7 @@ Get-Content .\data\reference.csv -TotalCount 3
 
 ### Колонки должны совпадать с конфигом
 
-Analyzer считает метрики только для features, перечисленных в конфиге. Колонка, которой нет в reference, не будет мониториться, даже если она присутствует в realtime-событиях.
+Analyzer считает метрики только для features, перечисленных в конфиге, и эти configured features должны существовать в reference. Если required feature из конфига отсутствует в reference, построение reference profile / инициализация analyzer завершается ошибкой — это не режим «просто не мониторить колонку».
 
 Обратная ситуация тоже важна: **demo-producer применяет drift-правила только к features, присутствующим в reference dataset** . Правило для `feature_1` при датасете с колонкой `age` будет молча пропущено. См. [docs/demo-producer.md](demo-producer.md).
 
@@ -137,7 +137,7 @@ prediction_metrics:
 - **для AV** — reference должен содержать достаточно строк для `n_splits` cross-validation. При недостатке AV не запустится, и `drift_av_available` останется `0` ;
 - **для калибровки thresholds** — генератор конфига по умолчанию нарезает reference на bootstrap-окна . На маленьком датасете калибровка даст шумные пороги.
 
-Сверху ограничение есть только у AV: параметр `max_samples` (по умолчанию `50000`) подрезает выборку перед обучением классификатора. На сами drift-метрики это не влияет — они считаются по всему reference.
+Сверху ограничение есть только у AV: параметр `max_samples` подрезает каждую из двух выборок перед обучением классификатора. Default модели Config — `100000`; в checked-in `config/config.yaml` явно задано `50000`. На сами univariate drift-метрики этот параметр не влияет.
 
 ### Categorical features
 
@@ -147,9 +147,9 @@ prediction_metrics:
 
 ## Reference и realtime-события
 
-Reference читается из CSV один раз при старте analyzer, current window собирается из Kafka-событий. Формат при этом разный — CSV против JSON — но **имена и типы полей должны соответствовать** друг другу и конфигу.
+Reference читается из CSV/Parquet один раз при старте analyzer, current window собирается из Kafka-событий. Формат хранения разный, но **имена и типы monitored fields должны соответствовать** reference и конфигу.
 
-Несовпадение имени поля в Kafka-событии проявится не как ошибка, а как отсутствующая метрика: analyzer просто не найдёт колонку в окне.
+Event-level parser проверяет JSON-структуру и `event_time`, а reference-based schema validation выполняется на полном DataFrame окна. Если required configured field отсутствует в событиях либо имеет несовместимый dtype, `SchemaChecker.check_df()` завершит анализ окна ошибкой. Consumer залогирует `analysis failed`, отбросит это окно, подтвердит offset и продолжит со следующим.
 
 Подробнее про валидацию событий — [docs/realtime.md](realtime.md).
 
@@ -194,10 +194,11 @@ Test-Path .\data\reference.csv
 
 Если файла нет — положите свой CSV или запустите `tools/get_demo_data.py` . Если файл есть, но analyzer его не видит, проверьте `REFERENCE_DATA_PATH` и volume-маппинг `data/` в Compose.
 
-**Метрики для части features не появляются.** Имя колонки в reference, в конфиге и в Kafka-событиях должно совпадать до символа. Проверьте заголовок CSV:
+**Новые drift-отчёты перестали появляться после смены схемы событий.** Имя required-колонки в reference, в конфиге и в Kafka-событиях должно совпадать до символа; несовпадение приводит к bad window. Проверьте заголовок reference и логи analyzer:
 
 ```bash
 head -n 1 data/reference.csv
+docker compose --profile realtime logs --tail=200 analyzer
 ```
 
 **PSI меняется, но статус остаётся `OK`.** Ожидаемо, если current window статистически близок к reference . Для демонстрации переходов `OK → Warning → Critical` настройте drift-сценарий producer'а под реальные колонки датасета — см. [docs/demo-producer.md](demo-producer.md).

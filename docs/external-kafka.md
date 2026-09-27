@@ -85,9 +85,9 @@ Analyzer читает единственный topic. Consumer не реализ
 
 ## Формат событий
 
-Analyzer ожидает JSON-сообщения. Каждое событие проходит schema validation и проверку event time; некорректные сообщения отбрасываются, не попадая в analysis window.
+Analyzer ожидает JSON-сообщения. До попадания в `WindowBuffer` выполняется event-level validation: payload должен быть JSON-объектом, `event_id` — строкой/целым, `event_time` — timezone-aware ISO-8601, а feature values — JSON-скалярами с конечными `float`-значениями. Такие структурно некорректные сообщения отбрасываются по одному.
 
-Имена полей должны совпадать с колонками reference dataset и с features в `config/config.yaml`. Несовпадение проявится не как ошибка, а как отсутствующая метрика — analyzer просто не найдёт колонку в окне.
+Reference-based schema validation выполняется **после набора полного окна**: `OfflineWrapper.analyze_df()` вызывает `SchemaChecker.check_df()`. Поэтому required fields из `config/config.yaml` должны присутствовать в current DataFrame и иметь dtype, совместимый с reference. Несовпадение имени или типа не даёт «просто отсутствующую метрику» — анализ полного окна падает, окно отбрасывается и consumer продолжает со следующим.
 
 Порядок действий при подключении своего потока:
 
@@ -124,7 +124,7 @@ curl.exe -s http://localhost:8000/metrics | Select-String "drift_current_window_
 
 </details>
 
-`drift_events_processed_total` растёт → события приходят и проходят валидацию. Первый drift-отчёт появится после набора полного `WINDOW_SIZE`.
+`drift_events_processed_total` растёт → события проходят event-level parsing и добавляются в окно. Это ещё не гарантирует успешную reference-based schema validation: она выполняется только после набора полного `WINDOW_SIZE`. Первый drift-отчёт появится после первого успешно проанализированного полного окна.
 
 ---
 
@@ -145,13 +145,13 @@ curl.exe -s http://localhost:8000/metrics | Select-String "drift_current_window_
 KAFKA_STARTUP_TIMEOUT_SECONDS=180
 ```
 
-**Analyzer подключился, но `drift_events_processed_total` не растёт.** Consumer подписан, но сообщений нет либо все отбрасываются валидацией. Разделить случаи помогает `drift_invalid_event_time_rate`: если он не нулевой, проблема в формате event time. Если метрика на нуле и счётчик стоит — в topic действительно нет новых сообщений для этой consumer group.
+**Analyzer подключился, но `drift_events_processed_total` не растёт.** Consumer подписан, но сообщений нет либо они отбрасываются на event-level parsing. Ненулевой `drift_invalid_event_time_rate` указывает именно на проблемы `event_time`; другие структурные ошибки (`event_id`, JSON shape, не-скалярные values) нужно смотреть в логах consumer. Если rate равна нулю и счётчик стоит, по одним метрикам нельзя отличить пустой topic от потока только с такими структурными ошибками — проверьте логи и committed offsets.
 
 При переиспользовании старой group проверьте, не вычитаны ли offsets до конца — analyzer начнёт с committed позиции, а не с начала topic.
 
 **События идут, но метрики не появляются.** Окно ещё не заполнено — partial window не анализируется. Сверьте `drift_current_window_events` с `drift_window_size`.
 
-**Часть features без метрик.** Имена полей в JSON не совпадают с колонками reference и конфига.
+**События принимаются, но новые drift reports не появляются.** Проверьте логи на `analysis failed`: отсутствие required field или несовместимый dtype в полном окне приводит к ошибке `SchemaChecker`, после чего окно отбрасывается. Имена и типы monitored fields должны совпадать с reference и конфигом.
 
 Остальные сценарии — [docs/troubleshooting.md](troubleshooting.md).
 

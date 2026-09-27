@@ -42,7 +42,7 @@ adversarial_validation:
 | Параметр | Назначение                                                                               |
 |---|------------------------------------------------------------------------------------------|
 | `enabled` | включает AV; по умолчанию в генераторе конфига `false`                                   |
-| `interval_minutes` | минимальный интервал до первого запуска и между AV runs в realtime                       |
+| `interval_minutes` | минимальный интервал **между повторными** AV runs; первый AV планируется на первом полном окне |
 | `max_samples` | верхняя граница числа строк на выборку (защита от долгого обучения на больших reference) |
 | `n_splits` | число CV folds                                                                           |
 | `random_state` | seed для воспроизводимости                                                               |
@@ -131,11 +131,17 @@ drift_av_roc_auc_cv_max
 drift_av_roc_auc_cv_std
 drift_av_driver_consistency
 drift_av_driver_similarity_previous
+drift_av_top1_importance_share
+drift_av_top3_importance_share
 drift_av_feature_importance{feature,rank}
+drift_av_timestamp_seconds
 drift_av_last_run_timestamp_seconds
+drift_av_dataset_size
 drift_av_reference_rows
 drift_av_current_rows
 drift_av_features_evaluated
+drift_av_sample_fraction{dataset}
+drift_av_threshold{level}
 ```
 
 ### ROC AUC и статус
@@ -214,14 +220,18 @@ Cosine similarity feature importance текущего AV к **предыдуще
 ### Размеры выборок и покрытие
 
 ```text
+drift_av_dataset_size
 drift_av_reference_rows
 drift_av_current_rows
 drift_av_features_evaluated
+drift_av_sample_fraction{dataset}
 ```
 
-Полезны для sanity check. Если `drift_av_features_evaluated` меньше, чем вы ожидаете по конфигу, часть признаков была отброшена — проверьте логи. `drift_av_reference_rows` отражает эффект `max_samples`: при больших reference-датасетах значение будет упёрто в лимит.
+Полезны для sanity check. Если `drift_av_features_evaluated` меньше, чем вы ожидаете по конфигу, часть признаков была отброшена — проверьте логи. `drift_av_reference_rows` показывает размер reference sample, доступного realtime Core, а `drift_av_current_rows` — размер current window.
 
-Сильный дисбаланс между `reference_rows` и `current_rows` сам по себе влияет на ROC AUC, поэтому при расчете они балансируются.
+Exporter выставляет `drift_av_dataset_size = min(reference_rows, current_rows)` и из него вычисляет `drift_av_sample_fraction` для `reference` и `current`. Сам классификатор внутри AV дополнительно применяет `max_samples`, то есть фактический training sample равен `min(len(reference), len(current), max_samples)`. В обычном realtime-сценарии с `WINDOW_SIZE` существенно меньше `max_samples` эти размеры совпадают.
+
+Сильный дисбаланс между доступными `reference_rows` и `current_rows` устраняется перед обучением: AV семплирует одинаковое число строк из обеих выборок.
 
 ### Feature importance
 
@@ -264,7 +274,7 @@ drift_av_status_streak
 
 Ключевая особенность: streak увеличивается **только при новом опубликованном AV result**. Обычные drift windows между AV runs не считаются новыми AV observations.
 
-Это означает, что AV streak накапливается в темпе `interval_minutes`, а не в темпе окон. При `interval_minutes=30` streak длиной 4 — это два часа наблюдений, а не 4 окна по 200 секунд.
+Это означает, что AV streak накапливается в темпе AV runs, а не в темпе обычных окон. Первый успешный AV сразу даёт `streak=1`; при `interval_minutes=30` значение `streak=4` возможно не раньше чем примерно через **90 минут после первого AV**, плюс выравнивание по ближайшим полным analysis windows.
 
 Детали alert rules — [docs/alerting.md](alerting.md).
 

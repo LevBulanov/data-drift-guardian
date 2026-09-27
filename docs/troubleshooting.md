@@ -92,14 +92,14 @@ Prometheus и Grafana не принадлежат ни одному profile и �
 
 ### `drift_events_processed_total` стоит на нуле
 
-Consumer подписался, но события не поступают либо отбрасываются валидацией. Разделить случаи помогает `drift_invalid_event_time_rate`:
+Consumer подписался, но события не поступают либо отбрасываются на event-level parsing. `drift_invalid_event_time_rate` помогает диагностировать только ошибки `event_time`:
 
 ```bash
 curl -s http://localhost:8000/metrics | grep -E 'drift_events_processed_total|drift_invalid_event_time_rate'
 ```
 
-- метрика не нулевая → проблема в формате event time у событий;
-- метрика на нуле, счётчик стоит → в topic нет новых сообщений для этой consumer group.
+- метрика не нулевая → проблема в формате `event_time` у части сообщений;
+- метрика на нуле, а счётчик стоит → проверьте и наличие новых сообщений, и логи consumer: структурные ошибки JSON/`event_id`/feature values в эту rate-метрику не входят.
 
 При переиспользовании существующей `KAFKA_GROUP_ID` analyzer начинает с committed offsets, а не с начала topic — возможно, всё уже вычитано.
 
@@ -120,12 +120,13 @@ drift_window_size
 
 При `WINDOW_SIZE=1000` и локальном producer'е с `PRODUCER_INTERVAL_SECONDS=0.2` первое окно набирается примерно за 200 секунд плюс время старта контейнеров.
 
-### Метрики есть только для части features
+### События идут, но новые drift reports не появляются
 
-Имена колонок должны совпадать **до символа** в трёх местах: reference CSV, `config/config.yaml` и события Kafka. Несовпадение проявляется не ошибкой, а отсутствующей метрикой.
+После заполнения окна analyzer выполняет `SchemaChecker.check_df()` относительно reference. Имена required columns должны совпадать **до символа** в reference, `config/config.yaml` и событиях Kafka, а dtypes должны быть совместимы. Несовпадение приводит к `analysis failed` и потере полного bad window, а не к тихому исчезновению одной метрики.
 
 ```bash
 head -n 1 data/reference.csv
+docker compose --profile realtime logs --tail=200 analyzer
 ```
 
 Checked-in конфиг рассчитан на `age`, `income`, `country`, `prediction_score`. Для другого датасета перегенерируйте:
@@ -362,9 +363,9 @@ ConfigBuildOptions(
 
 По умолчанию prediction monitoring выключен.
 
-### Метрики только для части колонок
+### Ошибка schema validation из-за колонок
 
-Конфиг в offline строится по `reference_df`: колонки, отсутствующие в reference, не мониторятся. Сверьте наборы колонок обоих DataFrame.
+В offline configured features формируются по `reference_df` и считаются required для `current_df`. Если required column отсутствует в current либо dtype несовместим с reference, `SchemaChecker` завершит `analyze_df()` ошибкой. Сверьте наборы колонок и dtypes обоих DataFrame.
 
 ### `run_av()` падает
 
@@ -418,7 +419,7 @@ Custom `mode` label **не используется** — не стоит на �
 drift_overall_status_streak
 ```
 
-Для AV логика другая: `drift_av_status_streak` увеличивается **только при новом AV result**. При `interval_minutes=30` streak длиной 4 означает два часа наблюдений, а не четыре окна.
+Для AV логика другая: `drift_av_status_streak` увеличивается **только при новом AV result**. Первый успешный AV уже даёт `streak=1`; при `interval_minutes=30` `streak=4` достижим не раньше чем примерно через **90 минут после первого AV**, плюс ожидание ближайших полных окон.
 
 См. [docs/alerting.md](alerting.md).
 

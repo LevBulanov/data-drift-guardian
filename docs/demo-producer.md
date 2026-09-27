@@ -80,7 +80,7 @@ ramp_steps: 1000   # за сколько сообщений он доходит 
 
 `start_step` отсчитывается в сообщениях, а не в секундах и не в окнах. При `PRODUCER_INTERVAL_SECONDS=0.2` шаг 1000 наступает примерно через 200 секунд после старта producer'а.
 
-`ramp_steps` задаёт плавность: в интервале от `start_step` до `start_step + ramp_steps` искажение нарастает от нуля до полной величины. Значение `ramp_steps: 0` даёт мгновенный скачок.
+`ramp_steps` задаёт плавность: в интервале от `start_step` до `start_step + ramp_steps` искажение нарастает от нуля до полной величины. В коде значение ограничивается минимумом `1`, поэтому `ramp_steps: 0` и `ramp_steps: 1` эквивалентны: на событии `start_step` сила ещё `0`, на следующем шаге — уже полная.
 
 ### Параметры по типам
 
@@ -132,7 +132,47 @@ Get-Content .\data\reference.csv -TotalCount 1
 
 ---
 
-## Готовый пример для `age / income / country`
+## Checked-in сценарий
+
+Текущий `tools/demo_producer/drift_config.yaml` начинает drift **внутри первого окна** (`WINDOW_SIZE=1000`):
+
+```yaml
+features:
+  age:
+    type: shift
+    magnitude: 2.5
+    start_step: 500
+    ramp_steps: 200
+
+  income:
+    type: scale
+    magnitude: 0.8
+    start_step: 500
+    ramp_steps: 200
+
+  country:
+    type: categorical_swap
+    probability: 0.6
+    target_category: rare_value
+    start_step: 800
+    ramp_steps: 1
+```
+
+В checked-in YAML также есть правило с ключом `prediction_metrics`. Producer матчится **по имени колонки reference**, поэтому для стандартной колонки `prediction_score` такое правило молча пропускается. Если нужно симулировать prediction drift, ключ должен называться `prediction_score`:
+
+```yaml
+  prediction_score:
+    type: noise
+    magnitude: 1.2
+    start_step: 300
+    ramp_steps: 50
+```
+
+При текущих `start_step` чистого первого окна нет: `age`/`income` начинают сдвигаться с шага 500, `country` — с 800. Первый realtime AV поэтому сравнивает reference уже с частично искажённым первым current window.
+
+### Вариант с чистым первым окном
+
+Если для демонстрации нужен явный baseline `OK` до начала drift, используйте расписание со `start_step >= WINDOW_SIZE`, например:
 
 ```yaml
 features:
@@ -156,18 +196,7 @@ features:
     ramp_steps: 500
 ```
 
-Это расписание подобрано под checked-in `config/config.yaml` и `WINDOW_SIZE=1000`.
-
-Что происходит по окнам:
-
-| Окно | Сообщения | Состояние |
-|---|---|---|
-| #1 | 0–999 | drift не активен, окно близко к reference |
-| #2 | 1000–1999 | `age` и `income` нарастают; с 1500 подключается `country` |
-| #3 | 2000–2999 | `age`, `income` на полной силе; `country` вышел на полную с шага 2000 |
-| #4+ | 3000+ | устойчивый drift |
-
-Первое окно остаётся чистым намеренно: так на дашборде видно исходное состояние `OK`, а не сразу красную картину. Это же даёт baseline для первого AV run — см. [docs/adversarial-validation.md](adversarial-validation.md).
+Тогда окно `#1` (сообщения `0–999`) остаётся близким к reference, а drift начинает нарастать со второго окна.
 
 ---
 
@@ -180,7 +209,7 @@ start_step: 200
 ramp_steps: 200
 ```
 
-При `WINDOW_SIZE=1000` drift начнётся внутри первого окна. Минус: чистого baseline-окна не будет, и первый AV run обучится уже на частично искаженных данных.
+При `WINDOW_SIZE=1000` drift начнётся внутри первого окна. Это ещё быстрее checked-in сценария, но чистого baseline-окна не будет, и первый AV run обучится уже на частично искажённых данных.
 
 ### Резкий скачок вместо тренда
 

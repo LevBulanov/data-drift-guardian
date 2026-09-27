@@ -2,13 +2,13 @@
 
 Документ описывает полный набор metric series, публикуемых exporter'ом, их labels, семантику значений и scrape-конфигурацию.
 
-Contract одинаков для realtime analyzer и mock exporter — это позволяет проверять дашборды и alert rules без Kafka и Core. См. [Mock-режим](../README.md#mock-режим-mock).
+Основной dashboard-facing contract согласован между realtime analyzer и mock exporter — это позволяет проверять дашборды и alert rules без Kafka и Core. Realtime exporter дополнительно публикует `drift_reference_sample_size`; mock воспроизводит остальные series, используемые dashboard/alerting, и reference metadata. См. [Mock-режим](../README.md#mock-режим-mock).
 
 ---
 
 ## Общие соглашения
 
-**Префикс.** Все series начинаются с `drift_`.
+**Префикс.** Все собственные series проекта начинаются с `drift_`. Кроме них exporter публикует стандартные `process_*` series из `prometheus_client` (в частности `process_start_time_seconds`, который использует dashboard).
 
 **Status codes.** Любая метрика со словом `status` в имени кодируется одинаково:
 
@@ -99,6 +99,15 @@ Label `level` — `warning` или `critical`.
 | `drift_last_analysis_age_seconds` | gauge | секунд с последнего успешного анализа |
 | `drift_report_timestamp_seconds` | gauge | timestamp последнего отчёта |
 
+### Reference metadata
+
+| Series | Labels | Значение |
+|---|---|---|
+| `drift_reference_profile_info` | `dataset_name`, `profile_created_at` | metadata активного reference profile |
+| `drift_reference_sample_size` | — | размер reference sample, доступного realtime Core |
+
+`drift_reference_profile_info` публикуется и realtime, и mock exporter'ом. `drift_reference_sample_size` относится к realtime exporter и в mock contract не дублируется.
+
 **Прогресс окна:**
 
 ```promql
@@ -137,8 +146,9 @@ rate(drift_events_processed_total[10m]) > 0
 | `drift_late_event_rate` | gauge | доля late-событий в окне |
 | `drift_late_events_total` | counter | late-события за весь срок жизни процесса |
 | `drift_out_of_order_events_total` | counter | out-of-order события, lifetime |
+| `drift_stream_threshold` | `metric`, `level` | warning/critical threshold для stream-health metric |
 
-Gauge-метрики — **window-local**: относятся к текущему или последнему закрытому окну.
+Gauge-метрики — **window-local**: относятся к текущему или последнему закрытому окну. `drift_stream_threshold` — конфигурационная series; label `level` принимает `warning`/`critical`.
 
 Counter-метрики — **lifetime** и не являются текущим health signal. Использовать их напрямую в alert-условии не стоит: они монотонно растут. Берите производную:
 
@@ -166,7 +176,7 @@ stream_drift:
 
 `window_time_span`, `max_event_gap` и `invalid_event_time_rate` публикуются, но в статус не входят.
 
-> Отдельного Grafana alert rule для `drift_stream_status` в текущем provisioning нет — см. [docs/alerting.md](alerting.md).
+Grafana provisioning содержит `Stream Health – Warning` и `Stream Health – Critical`. Они строят per-metric status из raw stream-gauges и `drift_stream_threshold`, а не используют агрегированный `drift_stream_status` как единственный alert signal. См. [docs/alerting.md](alerting.md).
 
 ---
 
@@ -183,11 +193,17 @@ stream_drift:
 | `drift_av_roc_auc_cv_std` | — | стандартное отклонение по folds |
 | `drift_av_driver_consistency` | — | mean pairwise cosine similarity importance между folds |
 | `drift_av_driver_similarity_previous` | — | cosine similarity к предыдущему завершённому AV |
+| `drift_av_top1_importance_share` | — | доля суммарной normalized importance у strongest driver |
+| `drift_av_top3_importance_share` | — | доля суммарной normalized importance у top-3 drivers |
 | `drift_av_feature_importance` | `feature`, `rank` | importance top-N drivers |
+| `drift_av_timestamp_seconds` | — | timestamp последнего опубликованного AV snapshot |
 | `drift_av_last_run_timestamp_seconds` | — | timestamp последнего AV, `-1` если не было |
-| `drift_av_reference_rows` | — | строк reference в AV |
-| `drift_av_current_rows` | — | строк current в AV |
+| `drift_av_dataset_size` | — | `min(reference_rows, current_rows)` в monitoring snapshot; фактический AV дополнительно ограничивает выборку через `max_samples` |
+| `drift_av_reference_rows` | — | строк reference, доступных realtime AV |
+| `drift_av_current_rows` | — | строк current window |
 | `drift_av_features_evaluated` | — | признаков в AV feature set |
+| `drift_av_sample_fraction` | `dataset` | отношение `drift_av_dataset_size` к `reference_rows` / `current_rows` для `dataset="reference"` и `dataset="current"` |
+| `drift_av_threshold` | `level` | monitoring threshold ROC AUC (`warning`/`critical`) |
 
 Thresholds для `drift_av_status` берутся из environment, а не из конфига:
 
@@ -237,7 +253,7 @@ drift_overall_status_streak >= 4
 
 `drift_av_status_streak` увеличивается **только при новом опубликованном AV result**. Обычные drift windows между AV runs новыми AV observations не являются.
 
-Практическое следствие: при `interval_minutes=30` streak длиной 4 означает два часа наблюдений, а не четыре окна. Пороги для AV streak нельзя назначать по аналогии с drift streak.
+Практическое следствие: первый успешный AV уже даёт `streak=1`. При `interval_minutes=30` для `streak=4` нужны ещё три повторных AV run, то есть минимум около **90 минут после первого AV** плюс ожидание ближайших полных окон. Пороги для AV streak нельзя назначать по аналогии с drift streak.
 
 Детали правил — [docs/alerting.md](alerting.md).
 

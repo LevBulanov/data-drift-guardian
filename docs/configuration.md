@@ -240,7 +240,10 @@ stream_drift:
   текущий health signal: он только растёт и не отражает состояние «сейчас».
 - Поля, которых нет в блоке, **не участвуют** в расчёте `stream_status`.
   То есть блок работает как whitelist: добавили порог — метрика начала влиять
-  на статус.
+  на статус. В realtime runtime поддерживаются пять threshold-inputs:
+  `drift_event_time_lag_seconds`, `drift_window_time_span_seconds`,
+  `drift_max_event_gap_seconds`, `drift_invalid_event_time_rate` и
+  `drift_late_event_rate`.
 
 ---
 
@@ -585,15 +588,14 @@ stream_drift = {
 
 Пороги пишутся в конфиг **как есть** — билдер их не калибрует и не проверяет
 по reference-данным. `None` → блок не добавляется в YAML.
-Можно указать следующие метрики: 
-- drift_stream_status 
-- drift_event_time_lag_seconds 
-- drift_window_time_span_seconds 
-- drift_max_event_gap_seconds 
-- drift_invalid_event_time_rate 
-- drift_late_event_rate 
-- drift_late_events_total 
-- drift_out_of_order_events_total
+Для realtime `stream_status` фактически используются только пять threshold-inputs:
+- `drift_event_time_lag_seconds`
+- `drift_window_time_span_seconds`
+- `drift_max_event_gap_seconds`
+- `drift_invalid_event_time_rate`
+- `drift_late_event_rate`
+
+`drift_stream_status` — это **выходная агрегированная** метрика, а `drift_late_events_total` и `drift_out_of_order_events_total` — lifetime counters. Они экспортируются для observability, но их thresholds не читаются realtime `StreamTracker` и на `drift_stream_status` не влияют.
 
 ---
 
