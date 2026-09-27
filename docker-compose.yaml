@@ -7,6 +7,7 @@ services:
       context: .
       dockerfile: src/drift_guardian/Dockerfile
     restart: unless-stopped
+    mem_limit: 1024m
     depends_on:
       kafka:
         condition: service_healthy
@@ -51,6 +52,7 @@ services:
     build:
       context: ./monitoring/mock_exporter
     restart: unless-stopped
+    mem_limit: 128m
     ports:
       - "8000:8000"
     networks:
@@ -58,13 +60,11 @@ services:
         aliases:
           - drift-exporter
 
-  # Синтетический генератор demo-событий. Смысл существования — только
-  # для локальной демонстрации analyzer/Grafana без реального внешнего
-  # источника данных. С внешним production Kafka не используется вовсе.
   drift-producer:
     profiles: ["local-kafka"]
     build:
       context: ./tools/demo_producer
+    mem_limit: 128m
     depends_on:
       analyzer:
         condition: service_healthy
@@ -82,12 +82,10 @@ services:
       DRIFT_CONFIG_PATH: /app/drift_config.yaml
       RANDOM_SEED: ${PRODUCER_RANDOM_SEED:-42}
 
-  # Локальный demo-брокер. Поднимается только явным профилем local-kafka.
-  # Для внешнего Kafka просто не указывайте этот профиль и задайте
-  # KAFKA_BOOTSTRAP_SERVERS в .env — analyzer подключится напрямую к нему.
   kafka:
     profiles: ["local-kafka"]
     image: apache/kafka:4.3.1
+    mem_limit: 768m
     ports:
       - "9092:9092"
     environment:
@@ -109,13 +107,14 @@ services:
         - CMD-SHELL
         - /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:19092 --list >/dev/null 2>&1
       interval: 5s
-      timeout: 5s
+      timeout: 30s
       retries: 20
       start_period: 10s
 
   prometheus:
     image: prom/prometheus:v3.14.0
     restart: unless-stopped
+    mem_limit: 512m
     command:
       - --config.file=/etc/prometheus/prometheus.yaml
     ports:
@@ -126,6 +125,7 @@ services:
   grafana:
     image: grafana/grafana:13.2.1
     restart: unless-stopped
+    mem_limit: 512m
     ports:
       - "3000:3000"
     environment:
