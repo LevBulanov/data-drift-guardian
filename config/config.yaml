@@ -4,6 +4,9 @@ features:
     metrics:
       - missing_rate
       - psi
+      - js_divergence
+      - wasserstein_distance
+      - kstest
     thresholds:            # Локальный override только для этой feature.
       psi:
         warning: 0.05
@@ -14,6 +17,9 @@ features:
     metrics:
       - missing_rate
       - psi
+      - js_divergence
+      - wasserstein_distance
+      - kstest
     # Локальные thresholds не заданы: используются глобальные значения.
 
   country:
@@ -21,8 +27,12 @@ features:
     metrics:
       - missing_rate
       - psi
+      - js_divergence
       - unseen_category_rate
       - cardinality_ratio
+      - chi2
+      - cramer_v
+      - category_churn
 
 prediction_metrics:
   enabled: true
@@ -30,6 +40,9 @@ prediction_metrics:
   type: numeric
   metrics:
     - psi
+    - js_divergence
+    - wasserstein_distance
+    - kstest
 
 thresholds:               # глобальные дефолты
   missing_rate:
@@ -38,12 +51,30 @@ thresholds:               # глобальные дефолты
   psi:
     warning: 0.1
     critical: 0.25
+  js_divergence:
+    warning: 0.005
+    critical: 0.02
+  wasserstein_distance:
+    warning: 1762.0271127820313
+    critical: 2291.4309429548425
+  kstest:
+    warning: 0.0424
+    critical: 0.05
   unseen_category_rate:
     warning: 0.05
     critical: 0.1
   cardinality_ratio:
     warning: 0.3
     critical: 0.6
+  chi2:
+    warning: 0.05
+    critical: 0.01
+  cramer_v:
+    warning: 0.02
+    critical: 0.05
+  category_churn:
+    warning: 0.005
+    critical: 0.02
 
 stream_drift:
   drift_event_time_lag_seconds:
@@ -74,3 +105,4 @@ adversarial_validation:
     reg_alpha: 1.0
     reg_lambda: 1.0
     random_state: 42
+
