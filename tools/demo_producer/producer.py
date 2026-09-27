@@ -111,6 +111,16 @@ def build_event(event_id: int, reference_df: pd.DataFrame | None, drift_config: 
         }
 
     row = apply_drift(row, drift_config, step)
+
+    if reference_df is not None:
+        for column, reference_dtype in reference_df.dtypes.items():
+            if (
+                    column in row
+                    and pd.api.types.is_integer_dtype(reference_dtype)
+                    and pd.notna(row[column])
+            ):
+                row[column] = int(round(row[column]))
+
     row = sanitize_types(row)
 
     row["event_id"] = event_id

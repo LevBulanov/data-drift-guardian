@@ -4,25 +4,25 @@
 #               (ramp_steps: 1 значит "мгновенно", резкий скачок)
 
 features:
-  feature_1:
+  age:
     type: shift
     magnitude: 2.5
     start_step: 500
     ramp_steps: 200
 
-  feature_2:
+  income:
     type: scale
     magnitude: 0.8
     start_step: 500
     ramp_steps: 200
 
-  feature_3:
+  prediction_metrics:
     type: noise
     magnitude: 1.2
     start_step: 300
     ramp_steps: 50
 
-  category_feature:
+  country:
     type: categorical_swap
     probability: 0.6
     target_category: rare_value
