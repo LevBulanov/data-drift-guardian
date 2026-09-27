@@ -6,6 +6,7 @@ from drift_guardian.analyzer.utils import make_counts, find_ref
 
 import pandas as pd
 
+
 @register(Metric.chi2)
 def compute_chi2_p_value(reference_dict: ReferenceDict, current: pd.Series) -> float:
     feature = current.name

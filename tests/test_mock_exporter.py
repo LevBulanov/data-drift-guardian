@@ -43,8 +43,7 @@ def _sample_value(
         ):
             return float(sample.value)
     raise AssertionError(
-        "resolved threshold not found for "
-        f"{feature}/{feature_type}/{metric}/{level}"
+        f"resolved threshold not found for {feature}/{feature_type}/{metric}/{level}"
     )
 
 
@@ -53,32 +52,44 @@ def test_mock_exports_local_and_global_resolved_thresholds() -> None:
     module = _load_mock_exporter()
     module.set_critical_scenario()
 
-    assert _sample_value(
-        module,
-        feature="age",
-        feature_type="numeric",
-        metric="psi",
-        level="warning",
-    ) == 0.05
-    assert _sample_value(
-        module,
-        feature="age",
-        feature_type="numeric",
-        metric="psi",
-        level="critical",
-    ) == 0.12
+    assert (
+        _sample_value(
+            module,
+            feature="age",
+            feature_type="numeric",
+            metric="psi",
+            level="warning",
+        )
+        == 0.05
+    )
+    assert (
+        _sample_value(
+            module,
+            feature="age",
+            feature_type="numeric",
+            metric="psi",
+            level="critical",
+        )
+        == 0.12
+    )
 
-    assert _sample_value(
-        module,
-        feature="income",
-        feature_type="numeric",
-        metric="psi",
-        level="warning",
-    ) == 0.1
-    assert _sample_value(
-        module,
-        feature="income",
-        feature_type="numeric",
-        metric="psi",
-        level="critical",
-    ) == 0.25
+    assert (
+        _sample_value(
+            module,
+            feature="income",
+            feature_type="numeric",
+            metric="psi",
+            level="warning",
+        )
+        == 0.1
+    )
+    assert (
+        _sample_value(
+            module,
+            feature="income",
+            feature_type="numeric",
+            metric="psi",
+            level="critical",
+        )
+        == 0.25
+    )

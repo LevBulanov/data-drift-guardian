@@ -149,7 +149,7 @@ def build_runtime(
         reference_df=reference_df,
         path_to_config=str(config_path),
         take_sample=True,
-        window_size=window_size
+        window_size=window_size,
     )
 
     return RuntimeContext(
@@ -168,13 +168,11 @@ def build_runtime_from_env(window_size: int) -> RuntimeContext:
     if window_size <= 0:
         raise ValueError("window_size must be positive")
 
-    reference_path = Path(
-        os.getenv("REFERENCE_DATA_PATH", "/app/data/reference.csv")
-    )
-#    if not reference_path.exists() and _env_flag("GENERATE_DEMO_REFERENCE", True):
-#        rows = int(os.getenv("DEMO_REFERENCE_ROWS", "10000"))
-#        seed = int(os.getenv("DEMO_REFERENCE_SEED", "42"))
-#        write_demo_reference(reference_path, rows=rows, seed=seed)
+    reference_path = Path(os.getenv("REFERENCE_DATA_PATH", "/app/data/reference.csv"))
+    #    if not reference_path.exists() and _env_flag("GENERATE_DEMO_REFERENCE", True):
+    #        rows = int(os.getenv("DEMO_REFERENCE_ROWS", "10000"))
+    #        seed = int(os.getenv("DEMO_REFERENCE_SEED", "42"))
+    #        write_demo_reference(reference_path, rows=rows, seed=seed)
 
     # Parser конфигурации находится внутри пакета drift_guardian.
     # Пользовательский YAML монтируется в Docker по пути /app/config/config.yaml.
@@ -205,7 +203,9 @@ def analyze_current_dataframe(
     """
     report = runtime.core.analyze_df(current_df)
     if not isinstance(report, dict):
-        raise TypeError("DriftMetricsEngine.analyze_dataframe must return dict[str, Any]")
+        raise TypeError(
+            "DriftMetricsEngine.analyze_dataframe must return dict[str, Any]"
+        )
 
     runtime._av_executed_last_analysis = False
     now = monotonic()
@@ -229,7 +229,7 @@ def analyze_current_dataframe(
             random_state=cfg.random_state if cfg.random_state is not None else 42,
             missing_category=cfg.missing_category or "__missing__",
             lightgbm_params=cfg.lightgbm.to_params(),
-            prediction_col=prediction_col
+            prediction_col=prediction_col,
         )
     except Exception:
         logger.exception(

@@ -259,11 +259,19 @@ def test_generate_html_report_accepts_mapping_and_creates_parent_directory(tmp_p
         ({}, ValueError, "report or report_path is required"),
         ({"report": complete_report()}, ValueError, "output_path is required"),
         (
-            {"report": complete_report(), "report_path": "report.json", "output_path": "out.html"},
+            {
+                "report": complete_report(),
+                "report_path": "report.json",
+                "output_path": "out.html",
+            },
             ValueError,
             "provide report or report_path, not both",
         ),
-        ({"report": [], "output_path": "out.html"}, TypeError, "report must be a mapping"),
+        (
+            {"report": [], "output_path": "out.html"},
+            TypeError,
+            "report must be a mapping",
+        ),
     ],
 )
 def test_generate_html_report_validates_arguments(kwargs, error_type, message):
@@ -289,7 +297,13 @@ def test_cli_passes_output_as_keyword_only_argument(tmp_path, monkeypatch, capsy
     monkeypatch.setattr(
         sys,
         "argv",
-        ["drift-guardian-report", str(report_path), str(output_path), "--dataset-name", "Demo"],
+        [
+            "drift-guardian-report",
+            str(report_path),
+            str(output_path),
+            "--dataset-name",
+            "Demo",
+        ],
     )
 
     offline_report.main()

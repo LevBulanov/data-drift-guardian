@@ -96,7 +96,9 @@ def _summary_card(
     """Сформировать карточку статуса или метрики."""
     status_class = f" status-{_status(status)}" if status else ""
     label_html = (
-        "" if variant == "overall" else f'<span class="summary-label">{escape(label)}</span>'
+        ""
+        if variant == "overall"
+        else f'<span class="summary-label">{escape(label)}</span>'
     )
     return f"""
         <article class="summary-card summary-card-{escape(variant)}{status_class}"
@@ -212,8 +214,7 @@ def _feature_table(
 
     metric_names = _metric_names(features)
     metric_headers = "".join(
-        f'<th scope="col">{escape(_metric_label(name))}</th>'
-        for name in metric_names
+        f'<th scope="col">{escape(_metric_label(name))}</th>' for name in metric_names
     )
     heading = f"<h3>{escape(title)}</h3>" if title else ""
     rows = []
@@ -233,7 +234,7 @@ def _feature_table(
         )
 
     return f"""
-        <section class="feature-group" aria-label="{escape(title or 'Feature metrics')}">
+        <section class="feature-group" aria-label="{escape(title or "Feature metrics")}">
             {heading}
             <div class="table-wrapper">
                 <table>
@@ -244,14 +245,16 @@ def _feature_table(
                             {metric_headers}
                         </tr>
                     </thead>
-                    <tbody>{''.join(rows)}</tbody>
+                    <tbody>{"".join(rows)}</tbody>
                 </table>
             </div>
         </section>
     """
 
 
-def _count_statuses(features: Mapping[str, Mapping[str, Any]]) -> tuple[int, int, int, int]:
+def _count_statuses(
+    features: Mapping[str, Mapping[str, Any]],
+) -> tuple[int, int, int, int]:
     warning_features = 0
     critical_features = 0
     warning_metrics = 0
@@ -335,7 +338,9 @@ def _adversarial_validation_section(av_report: Any) -> str:
     if av_report is None:
         return ""
     if not isinstance(av_report, (tuple, list)) or len(av_report) != 2:
-        raise TypeError("av_report must be the (roc_auc, feature_importance) result of run_av")
+        raise TypeError(
+            "av_report must be the (roc_auc, feature_importance) result of run_av"
+        )
 
     roc_auc, importance = av_report
     status = _av_status(roc_auc)
@@ -462,8 +467,8 @@ def render_report_html(
         <header class="report-header">
             <h1>{escape(report_dataset_name)}</h1>
             <div class="report-context">
-                <span>Report timestamp: <b>{_display(report.get('timestamp'))}</b></span>
-                <span>Window size: <b>{_display(report.get('window_size'))}</b></span>
+                <span>Report timestamp: <b>{_display(report.get("timestamp"))}</b></span>
+                <span>Window size: <b>{_display(report.get("window_size"))}</b></span>
             </div>
             <div class="monitoring-features">
                 <b>Monitored features:</b>
@@ -553,7 +558,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("report", type=Path, help="Path to drift_report.json")
     parser.add_argument("output", type=Path, help="Path to generated HTML")
-    parser.add_argument("--dataset-name", default="", help="Dataset name in the report header")
+    parser.add_argument(
+        "--dataset-name", default="", help="Dataset name in the report header"
+    )
     args = parser.parse_args()
 
     output_path = generate_html_report(

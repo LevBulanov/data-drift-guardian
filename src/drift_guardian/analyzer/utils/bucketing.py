@@ -5,6 +5,7 @@ import pandas as pd
 
 OTHER_BUCKET = "other"
 
+
 def make_counts(reference: CategoricalRef | NumericRef, current: pd.Series):
     feature_type = reference["type"]
 
@@ -53,7 +54,9 @@ def make_counts(reference: CategoricalRef | NumericRef, current: pd.Series):
             elif category not in known_categories:
                 other_current_count += count
 
-        has_other_bucket = bool(merged_categories) or other_ref_count > 0 or other_current_count > 0
+        has_other_bucket = (
+            bool(merged_categories) or other_ref_count > 0 or other_current_count > 0
+        )
 
         if has_other_bucket:
             ref_counts.append(other_ref_count)

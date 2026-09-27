@@ -54,9 +54,7 @@ def guarded_line_ranges(tree: ast.AST) -> list[tuple[int, int]]:
                     and isinstance(expr.func, ast.Name)
                     and expr.func.id == "consumer_runner"
                 )
-                is_named = (
-                    isinstance(expr, ast.Name) and expr.id in runner_names
-                )
+                is_named = isinstance(expr, ast.Name) and expr.id in runner_names
                 if is_direct or is_named:
                     ranges.append((node.lineno, node.end_lineno or node.lineno))
         if isinstance(node, ast.Try):
@@ -66,7 +64,6 @@ def guarded_line_ranges(tree: ast.AST) -> list[tuple[int, int]]:
                 body_end = node.body[-1].end_lineno or node.body[-1].lineno
                 ranges.append((body_start, body_end))
     return ranges
-
 
 
 @pytest.mark.parametrize("filename", TEST_FILES)
@@ -80,9 +77,7 @@ def test_metrics_read_inside_running_consumer(filename: str) -> None:
     ranges = guarded_line_ranges(tree)
 
     unguarded = sorted(
-        line
-        for line in reads
-        if not any(start <= line <= end for start, end in ranges)
+        line for line in reads if not any(start <= line <= end for start, end in ranges)
     )
 
     assert not unguarded, (

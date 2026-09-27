@@ -18,8 +18,8 @@ from drift_guardian.analyzer.methods.low_level.stats import (
 # PSI
 # ---------------------------------------------------------------------------
 
-class TestPSI:
 
+class TestPSI:
     def test_identical_distributions_psi_close_to_zero(self):
         ref = [100, 200, 300, 400]
         actual = [100, 200, 300, 400]
@@ -73,8 +73,8 @@ class TestPSI:
 # JS Divergence
 # ---------------------------------------------------------------------------
 
-class TestJSDivergence:
 
+class TestJSDivergence:
     def test_identical_distributions_js_zero(self):
         ref = [0.25, 0.25, 0.25, 0.25]
         actual = [0.25, 0.25, 0.25, 0.25]
@@ -107,8 +107,8 @@ class TestJSDivergence:
 # KS Statistic
 # ---------------------------------------------------------------------------
 
-class TestKSStatistic:
 
+class TestKSStatistic:
     def test_identical_samples_ks_zero(self):
         data = [1, 2, 3, 4, 5]
         result = ks_d_statistic(data, data)
@@ -142,8 +142,8 @@ class TestKSStatistic:
 # Chi2 p-value
 # ---------------------------------------------------------------------------
 
-class TestChi2PValue:
 
+class TestChi2PValue:
     def test_identical_distributions_high_p_value(self):
         ref = [100, 200, 300]
         actual = [100, 200, 300]
@@ -174,8 +174,8 @@ class TestChi2PValue:
 # Cramer's V
 # ---------------------------------------------------------------------------
 
-class TestCramerV:
 
+class TestCramerV:
     def test_identical_distributions_cramer_v_zero(self):
         ref = [100, 200, 300]
         actual = [100, 200, 300]
@@ -199,8 +199,8 @@ class TestCramerV:
 # Unseen Category Rate
 # ---------------------------------------------------------------------------
 
-class TestUnseenCategoryRate:
 
+class TestUnseenCategoryRate:
     def test_no_unseen_categories(self):
         ref = {"a": 10, "b": 20}
         actual = {"a": 5, "b": 15}
@@ -237,8 +237,8 @@ class TestUnseenCategoryRate:
 # Category Churn
 # ---------------------------------------------------------------------------
 
-class TestCategoryChurn:
 
+class TestCategoryChurn:
     def test_no_churn_identical_categories(self):
         ref = {"a": 10, "b": 20}
         actual = {"a": 5, "b": 15}
@@ -276,8 +276,8 @@ class TestCategoryChurn:
 # Cardinality Ratio Abs Diff
 # ---------------------------------------------------------------------------
 
-class TestCardinalityRatioAbsDiff:
 
+class TestCardinalityRatioAbsDiff:
     def test_zero_diff_when_ratios_match(self):
         current = pd.Series([1, 2, 3, 4, 5])
         ref_ratio = current.nunique() / len(current)
@@ -313,6 +313,7 @@ class TestCardinalityRatioAbsDiff:
 # ---------------------------------------------------------------------------
 # Parametrized edge-case тесты (общие паттерны)
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.parametrize(
     "func,ref,actual",

@@ -50,9 +50,7 @@ def make_config(features=None, prediction_metrics=None):
 
 def test_engine_init_stores_config_and_reference_profile():
     config = make_config()
-    reference_profile = {
-        "sample": pd.DataFrame({"x": [1, 2, 3]})
-    }
+    reference_profile = {"sample": pd.DataFrame({"x": [1, 2, 3]})}
 
     engine = DriftMetricsEngine(config, reference_profile)
 
@@ -68,7 +66,6 @@ def test_engine_init_stores_config_and_reference_profile():
         (0.2, 0.5, 0.1, "ok"),
         (0.2, 0.5, 0.3, "warning"),
         (0.2, 0.5, 0.6, "critical"),
-
         # higher is better: warning > critical
         (0.8, 0.5, 0.9, "ok"),
         (0.8, 0.5, 0.7, "warning"),
@@ -76,11 +73,14 @@ def test_engine_init_stores_config_and_reference_profile():
     ],
 )
 def test_get_metric_status(warning, critical, value, expected):
-    assert DriftMetricsEngine._get_metric_status(
-        warning,
-        critical,
-        value,
-    ) == expected
+    assert (
+        DriftMetricsEngine._get_metric_status(
+            warning,
+            critical,
+            value,
+        )
+        == expected
+    )
 
 
 def test_get_feature_status_returns_ok_when_all_metrics_ok():
@@ -181,9 +181,7 @@ def test_get_current_timestamp_returns_utc_iso_string_with_z_suffix():
 
 def test_make_report_without_prediction(monkeypatch):
     config = make_config()
-    reference_profile = {
-        "sample": pd.DataFrame()
-    }
+    reference_profile = {"sample": pd.DataFrame()}
 
     engine = DriftMetricsEngine(config, reference_profile)
     engine.window_size = 100
@@ -223,9 +221,7 @@ def test_make_report_without_prediction(monkeypatch):
 
 def test_make_report_with_prediction(monkeypatch):
     config = make_config()
-    reference_profile = {
-        "sample": pd.DataFrame()
-    }
+    reference_profile = {"sample": pd.DataFrame()}
 
     engine = DriftMetricsEngine(config, reference_profile)
     engine.window_size = 50
@@ -314,9 +310,7 @@ def test_analyze_column_for_feature(monkeypatch):
         }
     )
 
-    reference_profile = {
-        "sample": pd.DataFrame({"age": [10, 20, 30]})
-    }
+    reference_profile = {"sample": pd.DataFrame({"age": [10, 20, 30]})}
 
     engine = DriftMetricsEngine(config, reference_profile)
 
@@ -393,9 +387,7 @@ def test_analyze_column_for_prediction(monkeypatch):
         ),
     )
 
-    reference_profile = {
-        "sample": pd.DataFrame({"score": [0.1, 0.2, 0.3]})
-    }
+    reference_profile = {"sample": pd.DataFrame({"score": [0.1, 0.2, 0.3]})}
 
     engine = DriftMetricsEngine(config, reference_profile)
 
@@ -443,9 +435,7 @@ def test_analyze_column_raises_value_error_for_unknown_column_type(monkeypatch):
         }
     )
 
-    reference_profile = {
-        "sample": pd.DataFrame({"age": [1, 2, 3]})
-    }
+    reference_profile = {"sample": pd.DataFrame({"age": [1, 2, 3]})}
 
     engine = DriftMetricsEngine(config, reference_profile)
 
@@ -477,9 +467,7 @@ def test_analyze_dataframe_with_features_and_prediction(monkeypatch):
         ),
     )
 
-    reference_profile = {
-        "sample": pd.DataFrame()
-    }
+    reference_profile = {"sample": pd.DataFrame()}
 
     engine = DriftMetricsEngine(config, reference_profile)
 
@@ -587,9 +575,7 @@ def test_analyze_dataframe_without_prediction(monkeypatch):
         prediction_metrics=make_prediction_config(enabled=False),
     )
 
-    reference_profile = {
-        "sample": pd.DataFrame()
-    }
+    reference_profile = {"sample": pd.DataFrame()}
 
     engine = DriftMetricsEngine(config, reference_profile)
 
@@ -727,9 +713,7 @@ def test_run_adversarial_validation_calls_function_with_expected_arguments(monke
 
     config = make_config()
 
-    reference_profile = {
-        "sample": reference_sample
-    }
+    reference_profile = {"sample": reference_sample}
 
     engine = DriftMetricsEngine(config, reference_profile)
 
@@ -817,9 +801,7 @@ def test_run_adversarial_validation_excludes_prediction_col_when_provided(monkey
 
     config = make_config()
 
-    reference_profile = {
-        "sample": reference_sample
-    }
+    reference_profile = {"sample": reference_sample}
 
     engine = DriftMetricsEngine(config, reference_profile)
 
@@ -905,4 +887,3 @@ def test_run_adversarial_validation_prediction_col_none_is_noop(monkeypatch):
     # identity должна сохраняться — без лишнего копирования/переупорядочивания
     assert calls["reference"] is reference_sample
     assert calls["current"] is current
-

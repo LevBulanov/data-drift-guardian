@@ -6,6 +6,7 @@ from drift_guardian.analyzer.methods.low_level.stats import unseen_category_rate
 
 import pandas as pd
 
+
 @register(Metric.unseen_category_rate)
 def compute_unseen_category_rate(reference_dict: ReferenceDict, current: pd.Series):
     feature = current.name
@@ -13,7 +14,7 @@ def compute_unseen_category_rate(reference_dict: ReferenceDict, current: pd.Seri
 
     reference = find_ref(reference_dict, feature)
 
-    reference_freq = reference['categories']
+    reference_freq = reference["categories"]
     current_freq = current.value_counts().to_dict()
 
     return unseen_category_rate(reference_freq, current_freq)

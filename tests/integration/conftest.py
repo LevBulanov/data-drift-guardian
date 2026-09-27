@@ -87,12 +87,9 @@ class ApacheKafkaContainer(DockerContainer):
         # но не в advertised — там обязателен routable-адрес.
         self.with_env(
             "KAFKA_LISTENERS",
-            f"PLAINTEXT://0.0.0.0:{port},"
-            f"CONTROLLER://0.0.0.0:{KAFKA_CONTROLLER_PORT}",
+            f"PLAINTEXT://0.0.0.0:{port},CONTROLLER://0.0.0.0:{KAFKA_CONTROLLER_PORT}",
         )
-        self.with_env(
-            "KAFKA_ADVERTISED_LISTENERS", f"PLAINTEXT://localhost:{port}"
-        )
+        self.with_env("KAFKA_ADVERTISED_LISTENERS", f"PLAINTEXT://localhost:{port}")
         self.with_env(
             "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP",
             "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT",
@@ -124,6 +121,7 @@ class ApacheKafkaContainer(DockerContainer):
         super().start()
         return self
 
+
 @pytest.fixture(autouse=True)
 def reset_stop_flag() -> Iterator[None]:
     """Гарантирует чистый STOP до и после каждого теста.
@@ -154,7 +152,6 @@ def kafka_container() -> Iterator[ApacheKafkaContainer]:
         yield container
     finally:
         container.stop()
-
 
 
 @pytest.fixture(scope="session")
@@ -245,9 +242,7 @@ def committed_offset(bootstrap_servers: str) -> Callable[[str, str], int | None]
             }
         )
         try:
-            partitions = consumer.committed(
-                [TopicPartition(topic_name, 0)], timeout=10
-            )
+            partitions = consumer.committed([TopicPartition(topic_name, 0)], timeout=10)
             offset = partitions[0].offset
             return None if offset < 0 else int(offset)
         finally:
@@ -280,8 +275,10 @@ def reference_csv(tmp_path_factory: pytest.TempPathFactory) -> Path:
     """CSV с reference-данными: load_reference_dataframe читает .csv/.parquet."""
     rng = np.random.default_rng(42)
     frame = pd.DataFrame(
-        {name: rng.normal(loc=0.0, scale=1.0, size=REFERENCE_ROWS)
-         for name in FEATURE_NAMES}
+        {
+            name: rng.normal(loc=0.0, scale=1.0, size=REFERENCE_ROWS)
+            for name in FEATURE_NAMES
+        }
     )
     path = tmp_path_factory.mktemp("reference") / "reference.csv"
     frame.to_csv(path, index=False)
@@ -489,12 +486,12 @@ def consumer_runner() -> Iterator[Callable[[Any], ConsumerRunner]]:
 
     yield _factory
 
-
     # STOP выставляется один раз, чтобы разбудить все живые потоки.
     # Финальный сброс делает reset_stop_flag — здесь флаг не трогаем.
     consumer_module.STOP.set()
     for runner in created:
         runner.stop(timeout=10.0, reraise=False)
+
 
 import logging
 
@@ -503,6 +500,7 @@ def pytest_configure(config: pytest.Config) -> None:
     """Глушит DEBUG-логи docker-клиента и testcontainers."""
     for name in ("urllib3", "docker", "testcontainers.core.docker_client"):
         logging.getLogger(name).setLevel(logging.WARNING)
+
 
 @pytest.fixture
 def wait_until() -> Callable[..., None]:
@@ -521,6 +519,7 @@ def wait_until() -> Callable[..., None]:
         raise AssertionError(f"{message} (timeout={timeout}s)")
 
     return _wait
+
 
 @pytest.fixture
 def metric_value_strict(
@@ -549,6 +548,7 @@ def metric_value_strict(
         )
 
     return _value
+
 
 # --------------------------------------------------------------------------
 # Скрейп Prometheus-метрик работающего consumer'а

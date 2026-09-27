@@ -128,14 +128,14 @@ def install_offline_wrapper_fakes(
             return {"kind": "drift_report"}
 
         def run_adversarial_validation(
-                self,
-                current,
-                max_samples=100_000,
-                n_splits=3,
-                random_state=42,
-                missing_category="__missing__",
-                lightgbm_params=None,
-                prediction_col=None,
+            self,
+            current,
+            max_samples=100_000,
+            n_splits=3,
+            random_state=42,
+            missing_category="__missing__",
+            lightgbm_params=None,
+            prediction_col=None,
         ):
             self.av_current = current.copy()
             self.av_kwargs = {
@@ -148,7 +148,9 @@ def install_offline_wrapper_fakes(
             }
             return {"kind": "av_report"}
 
-    monkeypatch.setattr(offline_mode, "extract_feature_groups", fake_extract_feature_groups)
+    monkeypatch.setattr(
+        offline_mode, "extract_feature_groups", fake_extract_feature_groups
+    )
     monkeypatch.setattr(offline_mode, "Profiler", FakeProfiler)
     monkeypatch.setattr(offline_mode, "SchemaChecker", FakeSchemaChecker)
     monkeypatch.setattr(offline_mode, "DriftMetricsEngine", FakeDriftMetricsEngine)
@@ -366,7 +368,7 @@ def test_run_av_checks_schema_and_passes_required_columns_and_params(
         random_state=99,
         missing_category="__NA__",
         lightgbm_params=lightgbm_params,
-        prediction_col="score"
+        prediction_col="score",
     )
 
     assert result == {"kind": "av_report"}
@@ -384,7 +386,7 @@ def test_run_av_checks_schema_and_passes_required_columns_and_params(
         "random_state": 99,
         "missing_category": "__NA__",
         "lightgbm_params": lightgbm_params,
-        "prediction_col": 'score',
+        "prediction_col": "score",
     }
     assert engine.av_kwargs["prediction_col"] == "score"
 

@@ -2,6 +2,7 @@ from typing import TypedDict, Literal, NotRequired, Protocol
 import numpy as np
 import pandas as pd
 
+
 class OtherBucket(TypedDict):
     categories: list[str]
     is_catch_all_for_unseen: bool
@@ -24,9 +25,11 @@ class Quantiles(TypedDict):
     p95: float
     p99: float
 
+
 class DecileBins(TypedDict):
     frequencies: np.ndarray
     deciles: list[float]
+
 
 class CategoricalRef(TypedDict):
     feature: str
@@ -60,9 +63,11 @@ class NumericRef(TypedDict):
     merge_info: NotRequired[MergeInfo]
     churn_baseline: NotRequired[Literal["reference"]]
 
+
 CatRef = dict[str, CategoricalRef]
 PredsRef = dict[str, NumericRef | CategoricalRef]
 NumRef = dict[str, NumericRef]
+
 
 class ReferenceDict(TypedDict):
     cat_ref: CatRef

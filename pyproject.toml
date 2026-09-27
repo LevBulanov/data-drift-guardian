@@ -28,6 +28,7 @@ dev = [
     "ipykernel>=7.3.0",
     "pytest>=9.1.1",
     "rich>=15.0.0",
+    "ruff>=0.8.0",
     {include-group = "test"},
 ]
 test = [
@@ -61,4 +62,24 @@ filterwarnings = [
 ]
 log_cli_level = "INFO"
 
+
+[tool.ruff]
+target-version = "py313"
+line-length = 88
+
+[tool.ruff.lint]
+extend-select = [
+    "UP",
+    "D",
+    "I",
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+docstring-code-format = true
 

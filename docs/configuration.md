@@ -378,9 +378,9 @@ Reference-данные — это «эталонный» срез, относи�
 ### Вход и выход
 
 ```python
-DATA_PATH   = "data/reference.csv"   # .csv или .parquet
+DATA_PATH = "data/reference.csv"  # .csv или .parquet
 OUTPUT_PATH = "config/config.yaml"
-NROWS       = None                   # None = читать всё
+NROWS = None  # None = читать всё
 ```
 
 `NROWS` удобен для быстрой проверки на большом файле. Для `.parquet` файл
@@ -394,10 +394,10 @@ NROWS       = None                   # None = читать всё
 ### 1. Какие колонки мониторить
 
 ```python
-include_columns=None       # None = все колонки датафрейма
-exclude_columns=[]         # технические поля: id, timestamp, флаги
-disabled_features=[]       # ещё один способ выключить фичи
-feature_types={}           # override автоопределения типа
+include_columns = None  # None = все колонки датафрейма
+exclude_columns = []  # технические поля: id, timestamp, флаги
+disabled_features = []  # ещё один способ выключить фичи
+feature_types = {}  # override автоопределения типа
 ```
 
 - `include_columns` — белый список. Если задан, мониторятся **только** эти
@@ -410,7 +410,7 @@ feature_types={}           # override автоопределения типа
   числовые коды категорий:
 
 ```python
-feature_types={"region_code": "categorical", "rating": "numeric"}
+feature_types = {"region_code": "categorical", "rating": "numeric"}
 ```
 
 ---
@@ -418,11 +418,11 @@ feature_types={"region_code": "categorical", "rating": "numeric"}
 ### 2. Какие метрики считать
 
 ```python
-numeric_metrics=None            # None = дефолт билдера
-categorical_metrics=None        # None = дефолт билдера
-feature_metrics={}              # полная замена набора у фичи
-disabled_metrics=[]             # выключить метрику везде
-feature_disabled_metrics={}     # выключить метрику у одной фичи
+numeric_metrics = None  # None = дефолт билдера
+categorical_metrics = None  # None = дефолт билдера
+feature_metrics = {}  # полная замена набора у фичи
+disabled_metrics = []  # выключить метрику везде
+feature_disabled_metrics = {}  # выключить метрику у одной фичи
 ```
 
 Дефолт билдера для numeric:
@@ -434,16 +434,24 @@ feature_disabled_metrics={}     # выключить метрику у одно�
 Дефолт билдера для categorical:
 
 ```python
-["missing_rate", "psi", "js_divergence", "unseen_category_rate",
- "cardinality_ratio", "chi2", "cramer_v", "category_churn"]
+[
+    "missing_rate",
+    "psi",
+    "js_divergence",
+    "unseen_category_rate",
+    "cardinality_ratio",
+    "chi2",
+    "cramer_v",
+    "category_churn",
+]
 ```
 
 Примеры:
 
 ```python
-feature_metrics={"age": ["missing_rate", "psi", "kstest"]}
-disabled_metrics=["wasserstein_distance"]        # мешает разный масштаб фичей
-feature_disabled_metrics={"country": ["chi2", "cramer_v"]}
+feature_metrics = {"age": ["missing_rate", "psi", "kstest"]}
+disabled_metrics = ["wasserstein_distance"]  # мешает разный масштаб фичей
+feature_disabled_metrics = {"country": ["chi2", "cramer_v"]}
 ```
 
 ---
@@ -453,14 +461,14 @@ feature_disabled_metrics={"country": ["chi2", "cramer_v"]}
 Формат: `{"warning": x, "critical": y}` либо кортеж `(x, y)`.
 
 ```python
-global_thresholds={
-    "psi":    {"warning": 0.1,  "critical": 0.25},
+global_thresholds = {
+    "psi": {"warning": 0.1, "critical": 0.25},
     "kstest": (0.02, 0.05),
-    "chi2":   {"warning": 0.05, "critical": 0.01},   # reversed!
+    "chi2": {"warning": 0.05, "critical": 0.01},  # reversed!
 }
 
-feature_thresholds={
-    "age":    {"psi": {"warning": 0.05, "critical": 0.12}},
+feature_thresholds = {
+    "age": {"psi": {"warning": 0.05, "critical": 0.12}},
     "amount": {"psi": (0.15, 0.3)},
 }
 ```
@@ -476,7 +484,7 @@ feature_thresholds={
 отсутствии дрейфа». Пороги берутся как его квантили.
 
 ```python
-auto_thresholds=AutoThresholdSettings(
+auto_thresholds = AutoThresholdSettings(
     enabled=True,
     method="bootstrap",
     window_size=None,
@@ -549,11 +557,11 @@ reversed-метрики  ->  порог = min(квантиль, floor)
 ### 5. Мониторинг предсказаний
 
 ```python
-prediction_enabled=False
-prediction_score_column=None
-prediction_type=None
-prediction_metrics=None
-prediction_thresholds={}
+prediction_enabled = False
+prediction_score_column = None
+prediction_type = None
+prediction_metrics = None
+prediction_thresholds = {}
 ```
 
 | Параметр | Значение |
@@ -569,9 +577,9 @@ prediction_thresholds={}
 ### 6. Stream drift
 
 ```python
-stream_drift={
-    "drift_event_time_lag_seconds": {"warning": 30,   "critical": 120},
-    "drift_late_event_rate":        {"warning": 0.01, "critical": 0.05},
+stream_drift = {
+    "drift_event_time_lag_seconds": {"warning": 30, "critical": 120},
+    "drift_late_event_rate": {"warning": 0.01, "critical": 0.05},
 }
 ```
 
@@ -592,7 +600,7 @@ stream_drift={
 ### 7. Adversarial validation
 
 ```python
-adversarial_validation=AdversarialValidationBuildOptions(
+adversarial_validation = AdversarialValidationBuildOptions(
     enabled=False,
     interval_minutes=None,
     max_samples=100_000,
@@ -647,12 +655,12 @@ adversarial_validation=AdversarialValidationBuildOptions(
 фичей, частоты категорий. Относительно него потом считаются метрики дрейфа.
 
 ```python
-profiler_window_size=1000
-merge_threshold=5
-low_cardinality_threshold=15
-profiler_take_sample=True
-sample_float_dtype="float32"
-random_state=42
+profiler_window_size = 1000
+merge_threshold = 5
+low_cardinality_threshold = 15
+profiler_take_sample = True
+sample_float_dtype = "float32"
+random_state = 42
 ```
 
 | Параметр | Дефолт | Значение |
@@ -678,12 +686,12 @@ random_state=42
 ### 9. Прочее и strict-флаги
 
 ```python
-metric_kwargs={}
-strict_metric_compatibility=True
-strict_metric_registry=True
-drop_time_columns=True
-drop_all_missing_columns=True
-drop_features_without_metrics=True
+metric_kwargs = {}
+strict_metric_compatibility = True
+strict_metric_registry = True
+drop_time_columns = True
+drop_all_missing_columns = True
+drop_features_without_metrics = True
 ```
 
 | Параметр | Дефолт | `True` | `False` |
@@ -697,7 +705,7 @@ drop_features_without_metrics=True
 `metric_kwargs` — дополнительные аргументы для функций метрик :
 
 ```python
-metric_kwargs={"psi": {"eps": 1e-6}}
+metric_kwargs = {"psi": {"eps": 1e-6}}
 ```
 
 > **Рекомендация.** Держите оба `strict_*` флага в `True`, пока настраиваете
@@ -801,7 +809,7 @@ NROWS = 20_000
 OPTIONS = ConfigBuildOptions(
     auto_thresholds=AutoThresholdSettings(
         enabled=True,
-        n_windows=20,      # вместо 100 — быстрее, но квантили грубее
+        n_windows=20,  # вместо 100 — быстрее, но квантили грубее
     ),
 )
 ```
@@ -811,7 +819,7 @@ OPTIONS = ConfigBuildOptions(
 Для данных с сезонностью и автокорреляцией `rolling` честнее `bootstrap` :
 
 ```python
-auto_thresholds=AutoThresholdSettings(
+auto_thresholds = AutoThresholdSettings(
     enabled=True,
     method="rolling",
     window_size=1000,
@@ -839,7 +847,6 @@ OPTIONS = ConfigBuildOptions(
     prediction_type="numeric",
     prediction_metrics=["psi"],
     prediction_thresholds={"psi": {"warning": 0.1, "critical": 0.2}},
-
     adversarial_validation=AdversarialValidationBuildOptions(
         enabled=True,
         interval_minutes=30,
@@ -849,7 +856,7 @@ OPTIONS = ConfigBuildOptions(
             n_estimators=200,
             learning_rate=0.03,
             subsample=0.8,
-            subsample_freq=1,        # иначе subsample не применится
+            subsample_freq=1,  # иначе subsample не применится
             colsample_bytree=0.8,
             reg_alpha=1.0,
             reg_lambda=1.0,
@@ -862,7 +869,7 @@ OPTIONS = ConfigBuildOptions(
 ### Снижение шума алертов
 
 ```python
-auto_thresholds=AutoThresholdSettings(
+auto_thresholds = AutoThresholdSettings(
     enabled=True,
     warning_quantile=0.98,
     critical_quantile=0.995,
@@ -874,7 +881,7 @@ auto_thresholds=AutoThresholdSettings(
 Конфиг разрастётся в разы, но пороги учтут специфику каждой фичи :
 
 ```python
-auto_thresholds=AutoThresholdSettings(
+auto_thresholds = AutoThresholdSettings(
     enabled=True,
     per_feature=True,
     per_prediction=True,

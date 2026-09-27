@@ -172,9 +172,7 @@ class StreamTracker:
         max_event_gap = 0.0
 
         if len(ordered_times) > 1:
-            window_time_span = (
-                ordered_times[-1] - ordered_times[0]
-            ).total_seconds()
+            window_time_span = (ordered_times[-1] - ordered_times[0]).total_seconds()
             max_event_gap = max(
                 (right - left).total_seconds()
                 for left, right in zip(

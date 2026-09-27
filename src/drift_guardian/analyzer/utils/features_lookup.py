@@ -2,6 +2,7 @@ from drift_guardian.config_handler.parse_config import Config, FeatureType
 
 from typing import Optional, List, Tuple
 
+
 def extract_feature_groups(
     config: Config,
 ) -> Tuple[Optional[List[str]], Optional[List[str]], Optional[str]]:

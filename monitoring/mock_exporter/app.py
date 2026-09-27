@@ -13,9 +13,7 @@ NORMAL_DURATION_SECONDS = 60
 WARNING_DURATION_SECONDS = 45
 CRITICAL_DURATION_SECONDS = 30
 STATE_CYCLE_SECONDS = (
-    NORMAL_DURATION_SECONDS
-    + WARNING_DURATION_SECONDS
-    + CRITICAL_DURATION_SECONDS
+    NORMAL_DURATION_SECONDS + WARNING_DURATION_SECONDS + CRITICAL_DURATION_SECONDS
 )
 ANALYSIS_SEQUENCE = 0
 PREVIOUS_AV_IMPORTANCE: dict[str, float] = {}
@@ -323,9 +321,7 @@ def _set_streak(
 def export_to_prometheus(report: dict[str, Any]) -> None:
     """Преобразует один drift_report в набор Prometheus-метрик."""
 
-    timestamp = datetime.fromisoformat(
-        report["timestamp"].replace("Z", "+00:00")
-    )
+    timestamp = datetime.fromisoformat(report["timestamp"].replace("Z", "+00:00"))
     report_timestamp_seconds.set(timestamp.timestamp())
     window_size.set(report["window_size"])
     global OVERALL_STREAK_STATE
@@ -480,9 +476,17 @@ def export_adversarial_validation(timestamp: datetime) -> None:
             current_importance.get(name, 0.0) * PREVIOUS_AV_IMPORTANCE.get(name, 0.0)
             for name in features
         )
-        current_norm = sum(current_importance.get(name, 0.0) ** 2 for name in features) ** 0.5
-        previous_norm = sum(PREVIOUS_AV_IMPORTANCE.get(name, 0.0) ** 2 for name in features) ** 0.5
-        similarity = dot / (current_norm * previous_norm) if current_norm and previous_norm else 0.0
+        current_norm = (
+            sum(current_importance.get(name, 0.0) ** 2 for name in features) ** 0.5
+        )
+        previous_norm = (
+            sum(PREVIOUS_AV_IMPORTANCE.get(name, 0.0) ** 2 for name in features) ** 0.5
+        )
+        similarity = (
+            dot / (current_norm * previous_norm)
+            if current_norm and previous_norm
+            else 0.0
+        )
         av_driver_similarity_previous.set(similarity)
     else:
         av_driver_similarity_previous.set(-1)
@@ -557,12 +561,9 @@ def set_critical_scenario() -> None:
             }
 
         severity = max(
-            SEVERITY_TO_CODE[result["status"]]
-            for result in results.values()
+            SEVERITY_TO_CODE[result["status"]] for result in results.values()
         )
-        code_to_status = {
-            code: status for status, code in SEVERITY_TO_CODE.items()
-        }
+        code_to_status = {code: status for status, code in SEVERITY_TO_CODE.items()}
         return {
             "type": feature_type,
             "status": code_to_status[severity],
@@ -597,11 +598,31 @@ def set_critical_scenario() -> None:
         "balance": {"missing_rate": 0.12},
         # Один warning-алерт.
         "transactions": {"missing_rate": 0.06},
-        "credit_score": {"psi": 0.05, "missing_rate": 0.01, "wasserstein_distance": 0.05},
-        "account_age_days": {"psi": 0.02, "missing_rate": 0.00, "wasserstein_distance": 0.03},
-        "monthly_spend": {"psi": 0.08, "missing_rate": 0.02, "wasserstein_distance": 0.07},
-        "login_count": {"psi": 0.04, "missing_rate": 0.01, "wasserstein_distance": 0.02},
-        "support_tickets": {"psi": 0.06, "missing_rate": 0.03, "wasserstein_distance": 0.05},
+        "credit_score": {
+            "psi": 0.05,
+            "missing_rate": 0.01,
+            "wasserstein_distance": 0.05,
+        },
+        "account_age_days": {
+            "psi": 0.02,
+            "missing_rate": 0.00,
+            "wasserstein_distance": 0.03,
+        },
+        "monthly_spend": {
+            "psi": 0.08,
+            "missing_rate": 0.02,
+            "wasserstein_distance": 0.07,
+        },
+        "login_count": {
+            "psi": 0.04,
+            "missing_rate": 0.01,
+            "wasserstein_distance": 0.02,
+        },
+        "support_tickets": {
+            "psi": 0.06,
+            "missing_rate": 0.03,
+            "wasserstein_distance": 0.05,
+        },
     }
     categorical_features = {
         # Один warning-алерт.
@@ -686,27 +707,25 @@ def set_critical_scenario() -> None:
         },
     }
     # Добавляем prediction-блок в demo report.
-    prediction = feature_report("prediction", "numeric", {
-        "prediction_psi": 0.11,
-        "missing_rate": 0.01,
-        "js_divergence": 0.06,
-        "wasserstein_distance": 0.08,
-        "kstest": 0.08,
-    })
+    prediction = feature_report(
+        "prediction",
+        "numeric",
+        {
+            "prediction_psi": 0.11,
+            "missing_rate": 0.01,
+            "js_divergence": 0.06,
+            "wasserstein_distance": 0.08,
+            "kstest": 0.08,
+        },
+    )
 
     # Core считает overall status и active alerts по feature-блоку.
     # Prediction экспортируется отдельно и не повышает общий status.
-    alert_count = sum(
-        feature["status"] == "critical"
-        for feature in features.values()
-    )
+    alert_count = sum(feature["status"] == "critical" for feature in features.values())
     overall_severity = max(
-        SEVERITY_TO_CODE[feature["status"]]
-        for feature in features.values()
+        SEVERITY_TO_CODE[feature["status"]] for feature in features.values()
     )
-    code_to_status = {
-        code: status for status, code in SEVERITY_TO_CODE.items()
-    }
+    code_to_status = {code: status for status, code in SEVERITY_TO_CODE.items()}
     report_time = datetime.now(timezone.utc)
     report = {
         "timestamp": report_time.isoformat().replace("+00:00", "Z"),
@@ -722,30 +741,36 @@ def set_critical_scenario() -> None:
 
 
 FEATURE_LABELS = (
-    *((name, "numeric") for name in (
-        "age",
-        "income",
-        "tenure",
-        "balance",
-        "transactions",
-        "credit_score",
-        "account_age_days",
-        "monthly_spend",
-        "login_count",
-        "support_tickets",
-    )),
-    *((name, "categorical") for name in (
-        "country",
-        "device_type",
-        "channel",
-        "region",
-        "product",
-        "customer_segment",
-        "plan_type",
-        "browser",
-        "payment_method",
-        "acquisition_source",
-    )),
+    *(
+        (name, "numeric")
+        for name in (
+            "age",
+            "income",
+            "tenure",
+            "balance",
+            "transactions",
+            "credit_score",
+            "account_age_days",
+            "monthly_spend",
+            "login_count",
+            "support_tickets",
+        )
+    ),
+    *(
+        (name, "categorical")
+        for name in (
+            "country",
+            "device_type",
+            "channel",
+            "region",
+            "product",
+            "customer_segment",
+            "plan_type",
+            "browser",
+            "payment_method",
+            "acquisition_source",
+        )
+    ),
     ("prediction", "numeric"),
 )
 
@@ -857,9 +882,7 @@ def update_stream_health(
         event_time_lag_seconds.set(rng.uniform(130.0, 240.0))
         invalid_event_time_rate.set(rng.uniform(0.03, 0.08))
         is_late = tick % CRITICAL_LATE_EVENT_INTERVAL == 0
-        is_out_of_order = (
-            tick % CRITICAL_OUT_OF_ORDER_EVENT_INTERVAL == 0
-        )
+        is_out_of_order = tick % CRITICAL_OUT_OF_ORDER_EVENT_INTERVAL == 0
 
     if is_late:
         late_events.inc()

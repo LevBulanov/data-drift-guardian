@@ -246,11 +246,7 @@ class LightGBMBuildOptions:
     verbosity: int = -1
 
     def to_config(self) -> dict[str, Any]:
-        return {
-            k: v
-            for k, v in self.__dict__.items()
-            if v is not None
-        }
+        return {k: v for k, v in self.__dict__.items() if v is not None}
 
 
 @dataclass
@@ -353,7 +349,9 @@ class ConfigBuildOptions:
     random_state: int | None = 42
 
     # Auto-threshold settings.
-    auto_thresholds: AutoThresholdSettings = field(default_factory=AutoThresholdSettings)
+    auto_thresholds: AutoThresholdSettings = field(
+        default_factory=AutoThresholdSettings
+    )
 
     # kwargs для конкретных metric functions.
     # {"psi": {"eps": 1e-6}}
@@ -433,7 +431,9 @@ def build_drift_config(
         used_metrics.update(prediction_block["metrics"])
 
     if not feature_configs and not prediction_block.get("enabled", False):
-        raise ValueError("Nothing to monitor: no features and prediction_metrics disabled")
+        raise ValueError(
+            "Nothing to monitor: no features and prediction_metrics disabled"
+        )
 
     global_thresholds = _normalize_thresholds_map(options.global_thresholds)
 
@@ -873,7 +873,10 @@ def _estimate_missing_thresholds(
                     )
                 )
 
-    if prediction_block.get("enabled", False) and options.auto_thresholds.per_prediction:
+    if (
+        prediction_block.get("enabled", False)
+        and options.auto_thresholds.per_prediction
+    ):
         existing_local = prediction_block.get("thresholds", {})
 
         for metric_name, vals in prediction_values.items():
@@ -1108,7 +1111,9 @@ def _normalize_thresholds_map(
 def _coerce_threshold_pair(pair: ThresholdLike) -> dict[str, float]:
     if isinstance(pair, dict):
         if "warning" not in pair or "critical" not in pair:
-            raise ValueError(f"Threshold dict must contain warning and critical: {pair}")
+            raise ValueError(
+                f"Threshold dict must contain warning and critical: {pair}"
+            )
 
         warning = float(pair["warning"])
         critical = float(pair["critical"])

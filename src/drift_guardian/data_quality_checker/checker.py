@@ -170,8 +170,7 @@ class SchemaChecker:
         missing_required = self.required_cols - present_columns
         if missing_required:
             msg = (
-                f"REQUIRED columns missing in {source_desc}: "
-                f"{sorted(missing_required)}"
+                f"REQUIRED columns missing in {source_desc}: {sorted(missing_required)}"
             )
             logger.error(msg)
             if self.raise_on_missing_required:
@@ -189,11 +188,11 @@ class SchemaChecker:
     # ------------------------------------------------------------------
 
     def _dtypes_compatible(
-            self,
-            got: Any,
-            ref: Any,
-            col: str,
-            df: pd.DataFrame,
+        self,
+        got: Any,
+        ref: Any,
+        col: str,
+        df: pd.DataFrame,
     ) -> bool:
         """
         Логическая совместимость dtype входа с референсным.
@@ -218,7 +217,9 @@ class SchemaChecker:
         if isinstance(ref, pd.CategoricalDtype):
             if isinstance(got, pd.CategoricalDtype):
                 return True
-            if not (pd.api.types.is_string_dtype(got) or pd.api.types.is_object_dtype(got)):
+            if not (
+                pd.api.types.is_string_dtype(got) or pd.api.types.is_object_dtype(got)
+            ):
                 return False
             values = df[col].dropna()
             if values.empty:
@@ -286,7 +287,9 @@ class SchemaChecker:
             # float -> int коэрсим только если все значения целые
             # (1.0, 2.0, NaN). Реальные дробные (1.5) — нарушение
             # контракта, а не то, что можно тихо округлить astype'ом.
-            if pd.api.types.is_integer_dtype(ref_dtype) and pd.api.types.is_float_dtype(df[col].dtype):
+            if pd.api.types.is_integer_dtype(ref_dtype) and pd.api.types.is_float_dtype(
+                df[col].dtype
+            ):
                 values = df[col].dropna()
                 if not values.empty and not (values % 1 == 0).all():
                     continue
@@ -433,4 +436,3 @@ class SchemaChecker:
         # поэтому pydantic его отбросит как лишнее поле — докладываем вручную.
         validated_dict[self.time_column] = time_value
         return True, validated_dict, None
-

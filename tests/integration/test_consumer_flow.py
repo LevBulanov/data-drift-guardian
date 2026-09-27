@@ -42,6 +42,7 @@ def captured_analyses(monkeypatch: pytest.MonkeyPatch) -> list[pd.DataFrame]:
     monkeypatch.setattr(consumer_target("analyze_current_dataframe"), fake_analyze)
     return captured
 
+
 # --------------------------------------------------------------------------
 # Базовый happy path
 # --------------------------------------------------------------------------
@@ -363,6 +364,7 @@ def test_analysis_failure_still_advances_offset(
     assert runner.error is None
     assert len(attempts) == 1
 
+
 def test_recovery_after_transient_analysis_failure(
     runtime,
     no_signal_handlers,
@@ -398,7 +400,6 @@ def test_recovery_after_transient_analysis_failure(
     # Проверяем, что патч действительно подменил то имя,
     # которое consumer вызывает в _handle_full_window.
     from drift_guardian.ingestion import consumer as consumer_module
-
 
     assert consumer_module.analyze_current_dataframe is flaky_analyze, (
         "патч не применился: consumer вызывает другую ссылку на функцию"
@@ -442,8 +443,6 @@ def test_recovery_after_transient_analysis_failure(
     assert len(calls) == 2
     assert calls[0] == [0.0, 1.0, 2.0, 3.0, 4.0]
     assert calls[1] == [5.0, 6.0, 7.0, 8.0, 9.0]
-
-
 
 
 # --------------------------------------------------------------------------
@@ -556,11 +555,14 @@ def test_late_events_increase_late_rate(
         )
 
         # Остаточное окно: 2 late + 1 свежее, is_full не наступит.
-        produce(topic, [
-            make_event(WINDOW_SIZE, event_time=stale),
-            make_event(WINDOW_SIZE + 1, event_time=stale),
-            make_event(WINDOW_SIZE + 2, event_time=now),
-        ])
+        produce(
+            topic,
+            [
+                make_event(WINDOW_SIZE, event_time=stale),
+                make_event(WINDOW_SIZE + 1, event_time=stale),
+                make_event(WINDOW_SIZE + 2, event_time=now),
+            ],
+        )
 
         wait_until(
             lambda: metric_value("drift_events_processed") >= WINDOW_SIZE + 3,
@@ -608,10 +610,15 @@ def test_window_time_span_reflects_event_times(
 
         # Окно 2 (остаточное): 3 события с шагом 30с, is_full не наступит.
         residual = WINDOW_SIZE - 2
-        produce(topic, [
-            make_event(WINDOW_SIZE + i, event_time=base + dt.timedelta(seconds=i * 30))
-            for i in range(residual)
-        ])
+        produce(
+            topic,
+            [
+                make_event(
+                    WINDOW_SIZE + i, event_time=base + dt.timedelta(seconds=i * 30)
+                )
+                for i in range(residual)
+            ],
+        )
 
         wait_until(
             lambda: metric_value("drift_events_processed") >= WINDOW_SIZE + residual,
@@ -627,4 +634,3 @@ def test_window_time_span_reflects_event_times(
     assert span == pytest.approx(60.0, abs=2.0)
     # Анализ по-прежнему один — остаток не закрыл окно.
     assert len(captured_analyses) == 1
-

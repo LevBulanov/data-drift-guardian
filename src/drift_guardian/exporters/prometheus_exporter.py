@@ -458,7 +458,9 @@ class PrometheusExporter:
                 for level in ("warning", "critical"):
                     value = _finite_float(getattr(pair, level, None))
                     if value is not None:
-                        self.threshold.labels(metric=metric_name, level=level).set(value)
+                        self.threshold.labels(metric=metric_name, level=level).set(
+                            value
+                        )
 
         prediction = getattr(config, "prediction_metrics", None)
         resolved = getattr(prediction, "resolved_thresholds", None)
@@ -469,7 +471,9 @@ class PrometheusExporter:
                 for level in ("warning", "critical"):
                     value = _finite_float(getattr(pair, level, None))
                     if value is not None:
-                        self.threshold.labels(metric=metric_name, level=level).set(value)
+                        self.threshold.labels(metric=metric_name, level=level).set(
+                            value
+                        )
 
     def update_stream_thresholds(self, thresholds: Any) -> None:
         """Обновляет stream-quality thresholds в Prometheus."""
@@ -620,7 +624,11 @@ class PrometheusExporter:
             self.av_current_rows.set(current_rows)
 
         dataset_size = _finite_float(block.get("dataset_size"))
-        if dataset_size is None and reference_rows is not None and current_rows is not None:
+        if (
+            dataset_size is None
+            and reference_rows is not None
+            and current_rows is not None
+        ):
             dataset_size = min(reference_rows, current_rows)
         if dataset_size is not None:
             self.av_dataset_size.set(dataset_size)
@@ -913,9 +921,7 @@ class PrometheusExporter:
         )
         raw_alerts = block.get("alerts")
         alerts = (
-            [str(item) for item in raw_alerts]
-            if isinstance(raw_alerts, list)
-            else []
+            [str(item) for item in raw_alerts] if isinstance(raw_alerts, list) else []
         )
 
         metrics = block.get("metrics")

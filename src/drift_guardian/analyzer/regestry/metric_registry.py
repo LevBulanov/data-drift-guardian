@@ -23,20 +23,25 @@ def register(metric: Metric):
 
         METRIC_REGISTRY[metric] = fn
         return fn
+
     return wrapper
 
 
-from drift_guardian.analyzer.methods import (category_churn,
-                                                 chi2,
-                                                 cramer_v,
-                                                 js_divergence,
-                                                 ks_d_statistic,
-                                                 missing_rate,
-                                                 psi,
-                                                 unseen_category_rate,
-                                                 cardinality_ratio,
-                                                 wn_distance) # noqa: F401 — импорт ради побочного эффекта регистрации
+from drift_guardian.analyzer.methods import (
+    category_churn,
+    chi2,
+    cramer_v,
+    js_divergence,
+    ks_d_statistic,
+    missing_rate,
+    psi,
+    unseen_category_rate,
+    cardinality_ratio,
+    wn_distance,
+)  # noqa: F401 — импорт ради побочного эффекта регистрации
 
-logger.info("Metric registry initialized with %d metrics: %s",
-            len(METRIC_REGISTRY),
-            sorted(str(m) for m in METRIC_REGISTRY))
+logger.info(
+    "Metric registry initialized with %d metrics: %s",
+    len(METRIC_REGISTRY),
+    sorted(str(m) for m in METRIC_REGISTRY),
+)

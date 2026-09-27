@@ -7,11 +7,13 @@ def test_topic_roundtrip(produce, topic, bootstrap_servers):
     from confluent_kafka import Consumer
 
     produce(topic, [{"ping": 1}])
-    consumer = Consumer({
-        "bootstrap.servers": bootstrap_servers,
-        "group.id": "smoke",
-        "auto.offset.reset": "earliest",
-    })
+    consumer = Consumer(
+        {
+            "bootstrap.servers": bootstrap_servers,
+            "group.id": "smoke",
+            "auto.offset.reset": "earliest",
+        }
+    )
     try:
         consumer.subscribe([topic])
         message = consumer.poll(timeout=15.0)

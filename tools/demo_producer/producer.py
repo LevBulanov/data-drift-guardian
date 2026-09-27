@@ -28,7 +28,11 @@ def load_reference_dataset(path: str) -> pd.DataFrame:
     if not path_obj.exists():
         raise FileNotFoundError(f"Reference dataset not found at {path}")
 
-    df = pd.read_parquet(path_obj) if path_obj.suffix == ".parquet" else pd.read_csv(path_obj)
+    df = (
+        pd.read_parquet(path_obj)
+        if path_obj.suffix == ".parquet"
+        else pd.read_csv(path_obj)
+    )
     print(f"Loaded reference dataset: {len(df)} rows, columns: {list(df.columns)}")
     return df
 
@@ -44,8 +48,11 @@ def load_drift_config(path: str | None) -> dict:
 
     features = raw.get("features", {})
     _validate_drift_config(features)
-    print(f"Loaded drift config for features: {list(features.keys())}" if features
-          else "Drift config is empty, drift simulation disabled")
+    print(
+        f"Loaded drift config for features: {list(features.keys())}"
+        if features
+        else "Drift config is empty, drift simulation disabled"
+    )
     return features
 
 
@@ -55,11 +62,15 @@ def _validate_drift_config(features: dict) -> None:
         if drift_type not in VALID_DRIFT_TYPES:
             raise ValueError(f"Unknown drift type '{drift_type}' for feature '{name}'")
         if drift_type != "categorical_swap" and "magnitude" not in cfg:
-            raise ValueError(f"Feature '{name}': 'magnitude' is required for type '{drift_type}'")
+            raise ValueError(
+                f"Feature '{name}': 'magnitude' is required for type '{drift_type}'"
+            )
         if drift_type == "categorical_swap":
             for key in ("probability", "target_category"):
                 if key not in cfg:
-                    raise ValueError(f"Feature '{name}': '{key}' is required for categorical_swap")
+                    raise ValueError(
+                        f"Feature '{name}': '{key}' is required for categorical_swap"
+                    )
 
 
 def apply_drift(row: dict, drift_config: dict, step: int) -> dict:
@@ -84,7 +95,9 @@ def apply_drift(row: dict, drift_config: dict, step: int) -> dict:
         elif drift_type == "scale":
             drifted[feature] = drifted[feature] * (1 + cfg["magnitude"] * progress)
         elif drift_type == "noise":
-            drifted[feature] = drifted[feature] + random.gauss(0, cfg["magnitude"] * progress)
+            drifted[feature] = drifted[feature] + random.gauss(
+                0, cfg["magnitude"] * progress
+            )
         elif drift_type == "categorical_swap":
             if random.random() < cfg["probability"] * progress:
                 drifted[feature] = cfg["target_category"]
@@ -97,7 +110,9 @@ def sanitize_types(row: dict) -> dict:
     return {k: (v.item() if hasattr(v, "item") else v) for k, v in row.items()}
 
 
-def build_event(event_id: int, reference_df: pd.DataFrame | None, drift_config: dict, step: int) -> dict[str, object]:
+def build_event(
+    event_id: int, reference_df: pd.DataFrame | None, drift_config: dict, step: int
+) -> dict[str, object]:
     """Генерирует одно demo-событие: из референса (если задан) или синтетически,
     затем применяет дрифт и приводит типы."""
     if reference_df is not None:
@@ -115,9 +130,9 @@ def build_event(event_id: int, reference_df: pd.DataFrame | None, drift_config: 
     if reference_df is not None:
         for column, reference_dtype in reference_df.dtypes.items():
             if (
-                    column in row
-                    and pd.api.types.is_integer_dtype(reference_dtype)
-                    and pd.notna(row[column])
+                column in row
+                and pd.api.types.is_integer_dtype(reference_dtype)
+                and pd.notna(row[column])
             ):
                 row[column] = int(round(row[column]))
 
@@ -130,12 +145,22 @@ def build_event(event_id: int, reference_df: pd.DataFrame | None, drift_config: 
 
 def build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Drift Guardian demo producer")
-    parser.add_argument("--reference-path", default=os.environ.get("REFERENCE_DATASET_PATH"))
-    parser.add_argument("--drift-config-path", default=os.environ.get("DRIFT_CONFIG_PATH"))
-    parser.add_argument("--interval", type=float,
-                         default=float(os.environ.get("PRODUCER_INTERVAL_SECONDS", "0.2")))
-    parser.add_argument("--seed", type=int,
-                         default=int(os.environ["RANDOM_SEED"]) if os.environ.get("RANDOM_SEED") else 42)
+    parser.add_argument(
+        "--reference-path", default=os.environ.get("REFERENCE_DATASET_PATH")
+    )
+    parser.add_argument(
+        "--drift-config-path", default=os.environ.get("DRIFT_CONFIG_PATH")
+    )
+    parser.add_argument(
+        "--interval",
+        type=float,
+        default=float(os.environ.get("PRODUCER_INTERVAL_SECONDS", "0.2")),
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=int(os.environ["RANDOM_SEED"]) if os.environ.get("RANDOM_SEED") else 42,
+    )
     return parser
 
 
@@ -146,7 +171,9 @@ def main() -> None:
     bootstrap_servers = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "kafka:19092")
     topic = os.getenv("KAFKA_TOPIC", "features-stream")
 
-    reference_df = load_reference_dataset(args.reference_path) if args.reference_path else None
+    reference_df = (
+        load_reference_dataset(args.reference_path) if args.reference_path else None
+    )
     drift_config = load_drift_config(args.drift_config_path)
 
     producer = Producer({"bootstrap.servers": bootstrap_servers})
@@ -163,9 +190,14 @@ def main() -> None:
             event = build_event(event_id, reference_df, drift_config, step)
 
             for feature, cfg in drift_config.items():
-                if step == cfg.get("start_step", 0) and feature not in active_drift_features:
+                if (
+                    step == cfg.get("start_step", 0)
+                    and feature not in active_drift_features
+                ):
                     active_drift_features.add(feature)
-                    print(f"[step {step}] Drift started for '{feature}' (type={cfg['type']})")
+                    print(
+                        f"[step {step}] Drift started for '{feature}' (type={cfg['type']})"
+                    )
 
             producer.produce(
                 topic,

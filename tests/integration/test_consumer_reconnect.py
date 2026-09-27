@@ -13,6 +13,7 @@ def test_waits_until_broker_becomes_available(bootstrap_servers, topic):
     class FlakyAdmin:
         def __init__(self, config):
             from confluent_kafka.admin import AdminClient
+
             self._real = AdminClient({**config, "bootstrap.servers": real_bootstrap})
 
         def list_topics(self, topic, timeout):

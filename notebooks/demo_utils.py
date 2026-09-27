@@ -21,9 +21,9 @@ def build_offline_demo_data(
             "age": np.clip(rng.normal(40, 10, reference_rows), 18, 80).round(),
             "income": rng.lognormal(np.log(65_000), 0.35, reference_rows).round(2),
             "country": rng.choice(
-                ["IT", "ES", "NL" , "PL", "FI"], 
-                reference_rows, 
-                p=[0.30, 0.20, 0.20, 0.20, 0.10]
+                ["IT", "ES", "NL", "PL", "FI"],
+                reference_rows,
+                p=[0.30, 0.20, 0.20, 0.20, 0.10],
             ),
             "prediction_score": rng.beta(2, 5, reference_rows),
         }
@@ -33,9 +33,9 @@ def build_offline_demo_data(
             "age": np.clip(rng.normal(40, 10, current_rows), 18, 80).round(),
             "income": rng.lognormal(np.log(68_000), 0.35, current_rows).round(2),
             "country": rng.choice(
-                ["IT", "ES", "NL" , "PL", "FI", "NEW_COUNTRY"],
+                ["IT", "ES", "NL", "PL", "FI", "NEW_COUNTRY"],
                 current_rows,
-                 p=[0.29, 0.20, 0.20, 0.20, 0.10, 0.01],
+                p=[0.29, 0.20, 0.20, 0.20, 0.10, 0.01],
             ),
             "prediction_score": rng.beta(2.15, 5, current_rows),
         }

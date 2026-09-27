@@ -325,7 +325,9 @@ def test_find_ref_raises_if_feature_not_found():
         "preds_ref": {},
     }
 
-    with pytest.raises(ValueError, match="No feature: missing_feature in reference_dict"):
+    with pytest.raises(
+        ValueError, match="No feature: missing_feature in reference_dict"
+    ):
         find_ref(reference_dict, "missing_feature")
 
 

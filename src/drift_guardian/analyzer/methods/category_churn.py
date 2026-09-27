@@ -6,6 +6,7 @@ from drift_guardian.analyzer.methods.low_level.stats import category_churn
 
 import pandas as pd
 
+
 @register(Metric.category_churn)
 def compute_category_churn(reference_dict: ReferenceDict, current: pd.Series):
     feature = current.name
@@ -13,7 +14,7 @@ def compute_category_churn(reference_dict: ReferenceDict, current: pd.Series):
 
     reference = find_ref(reference_dict, feature)
 
-    reference_freq = reference['categories']
+    reference_freq = reference["categories"]
     current_freq = current.value_counts().to_dict()
 
     return category_churn(reference_freq, current_freq)

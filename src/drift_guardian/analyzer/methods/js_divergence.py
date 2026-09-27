@@ -6,6 +6,7 @@ from drift_guardian.analyzer.methods.low_level.stats import js_divergence
 
 import pandas as pd
 
+
 @register(Metric.js_divergence)
 def compute_js_divergence(reference_dict: ReferenceDict, current: pd.Series) -> float:
     feature = current.name

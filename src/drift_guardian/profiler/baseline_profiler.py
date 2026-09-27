@@ -36,7 +36,11 @@ class Profiler:
         logger.info(
             "Initializing Profiler: window_size=%s, num_features=%s, cat_features=%s, "
             "prediction=%s, take_sample=%s",
-            window_size, num_features, cat_features, prediction, take_sample,
+            window_size,
+            num_features,
+            cat_features,
+            prediction,
+            take_sample,
         )
 
         if not isinstance(ref_data, pd.DataFrame):
@@ -74,7 +78,9 @@ class Profiler:
         # Фича не может быть одновременно числовой и категориальной
         overlap = set(num_features) & set(cat_features)
         if overlap:
-            logger.error("Overlap between num_features and cat_features: %s", sorted(overlap))
+            logger.error(
+                "Overlap between num_features and cat_features: %s", sorted(overlap)
+            )
             raise ValueError(
                 f"Feature(s) provided in both num_features and cat_features: "
                 f"{sorted(overlap)}"
@@ -83,12 +89,19 @@ class Profiler:
         # Валидация prediction
         if not isinstance(prediction, str | None):
             logger.error("prediction has invalid type: %s", type(prediction))
-            raise ValueError(f"prediction must be string or None, got {type(prediction)}")
+            raise ValueError(
+                f"prediction must be string or None, got {type(prediction)}"
+            )
 
         # Prediction не может быть явно указан в обеих группах фич
-        if prediction is not None and prediction in num_features and prediction in cat_features:
+        if (
+            prediction is not None
+            and prediction in num_features
+            and prediction in cat_features
+        ):
             logger.error(
-                "Prediction '%s' is specified in both num_features and cat_features", prediction
+                "Prediction '%s' is specified in both num_features and cat_features",
+                prediction,
             )
             raise ValueError(
                 f"Prediction '{prediction}' is provided in both num_features and cat_features. "
@@ -98,15 +111,24 @@ class Profiler:
         # Валидация window_size
         if take_sample:
             if not isinstance(window_size, int) or isinstance(window_size, bool):
-                logger.error("Invalid window_size type when take_sample=True: %s", type(window_size))
-                raise ValueError(f"If take_sample=True, window_size must be int, got {type(window_size)}")
+                logger.error(
+                    "Invalid window_size type when take_sample=True: %s",
+                    type(window_size),
+                )
+                raise ValueError(
+                    f"If take_sample=True, window_size must be int, got {type(window_size)}"
+                )
 
             if window_size <= 0:
                 logger.error("window_size must be greater than 0, got: %s", window_size)
-                raise ValueError(f"If take_sample=True, window_size must be greater than 0, got {window_size}")
+                raise ValueError(
+                    f"If take_sample=True, window_size must be greater than 0, got {window_size}"
+                )
         else:
             if window_size is not None:
-                logger.warning("take_sample=False, but window_size is set and will be ignored")
+                logger.warning(
+                    "take_sample=False, but window_size is set and will be ignored"
+                )
                 warnings.warn(f"If take_sample=False, window_size does nothing")
 
         # Валидация merge_threshold
@@ -117,7 +139,9 @@ class Profiler:
             )
 
         if merge_threshold <= 0:
-            logger.error("merge_threshold must be greater than 0, got: %s", merge_threshold)
+            logger.error(
+                "merge_threshold must be greater than 0, got: %s", merge_threshold
+            )
             raise ValueError(
                 f"merge_threshold must be greater than 0, got {merge_threshold}"
             )
@@ -127,7 +151,8 @@ class Profiler:
             low_cardinality_threshold, bool
         ):
             logger.error(
-                "low_cardinality_threshold has invalid type: %s", type(low_cardinality_threshold)
+                "low_cardinality_threshold has invalid type: %s",
+                type(low_cardinality_threshold),
             )
             raise ValueError(
                 "low_cardinality_threshold must be int, "
@@ -136,7 +161,8 @@ class Profiler:
 
         if low_cardinality_threshold <= 0:
             logger.error(
-                "low_cardinality_threshold must be greater than 0, got: %s", low_cardinality_threshold
+                "low_cardinality_threshold must be greater than 0, got: %s",
+                low_cardinality_threshold,
             )
             raise ValueError(
                 "low_cardinality_threshold must be greater than 0, "
@@ -150,7 +176,9 @@ class Profiler:
 
         # Валидация dtype для сэмпла
         if not isinstance(sample_float_dtype, str):
-            logger.error("sample_float_dtype has invalid type: %s", type(sample_float_dtype))
+            logger.error(
+                "sample_float_dtype has invalid type: %s", type(sample_float_dtype)
+            )
             raise ValueError(
                 f"sample_dtype must be str, got {type(sample_float_dtype)}"
             )
@@ -158,13 +186,18 @@ class Profiler:
         try:
             sample_dtype_np = np.dtype(sample_float_dtype)
         except TypeError as exc:
-            logger.exception("Invalid numpy dtype for sample_dtype: %s", sample_float_dtype)
+            logger.exception(
+                "Invalid numpy dtype for sample_dtype: %s", sample_float_dtype
+            )
             raise ValueError(
                 f"Invalid numpy dtype for sample_dtype: {sample_float_dtype}"
             ) from exc
 
         if not np.issubdtype(sample_dtype_np, np.floating):
-            logger.error("sample_dtype must be a numpy floating dtype, got: %s", sample_float_dtype)
+            logger.error(
+                "sample_dtype must be a numpy floating dtype, got: %s",
+                sample_float_dtype,
+            )
             raise ValueError(
                 f"sample_dtype must be a numpy floating dtype, got {sample_float_dtype}"
             )
@@ -178,7 +211,9 @@ class Profiler:
 
         # Должно быть указано хотя бы что-то для профилирования
         if not num_features and not cat_features and prediction is None:
-            logger.error("Neither num_features, cat_features, nor prediction is specified")
+            logger.error(
+                "Neither num_features, cat_features, nor prediction is specified"
+            )
             raise ValueError(
                 "Something from num_features, cat_features or prediction "
                 "must be provided. Nothing to profile."
@@ -209,13 +244,17 @@ class Profiler:
                 )
 
             if not is_numeric_dtype(ref_data[num_col]):
-                logger.error("Column '%s' is listed in num_features but is not numeric", num_col)
+                logger.error(
+                    "Column '%s' is listed in num_features but is not numeric", num_col
+                )
                 raise ValueError(
                     f"Col: {num_col} is mentioned in num_features, but doesn't have numeric dtype."
                 )
 
             if is_bool_dtype(ref_data[num_col]):
-                logger.error("Column '%s' is listed in num_features but has bool dtype", num_col)
+                logger.error(
+                    "Column '%s' is listed in num_features but has bool dtype", num_col
+                )
                 raise ValueError(
                     f"Col: {num_col} is mentioned in num_features, but has bool dtype."
                 )
@@ -233,7 +272,9 @@ class Profiler:
 
         error_message = ""
         if prediction is not None and prediction not in columns_set:
-            error_message = error_message + f"Prediction: {[prediction]} is missing in ref_data"
+            error_message = (
+                error_message + f"Prediction: {[prediction]} is missing in ref_data"
+            )
 
         if not_met_num_cols:
             if error_message:
@@ -270,20 +311,37 @@ class Profiler:
         self.prediction = prediction
         if prediction is not None:
             if time_dtype := self.check_for_time_dtype(ref_data, self.prediction):
-                logger.error("Prediction column '%s' has time dtype: %s", self.prediction, time_dtype)
+                logger.error(
+                    "Prediction column '%s' has time dtype: %s",
+                    self.prediction,
+                    time_dtype,
+                )
                 raise ValueError(
                     f"Prediction col: {self.prediction} has dtype: {time_dtype} which is time dtype. Time dtypes are unsupported."
                 )
 
-            if prediction in self.num_features and not is_numeric_dtype(ref_data[prediction]):
-                logger.error("Prediction '%s' is in num_features but is not numeric", prediction)
+            if prediction in self.num_features and not is_numeric_dtype(
+                ref_data[prediction]
+            ):
+                logger.error(
+                    "Prediction '%s' is in num_features but is not numeric", prediction
+                )
                 raise ValueError(
                     f"Prediction mentioned in num_features but doesn't have numeric dtype"
                 )
 
-            if prediction not in self.num_features and prediction not in self.cat_features:
-                prediction_type = "num" if is_numeric_dtype(ref_data[prediction]) else "cat"
-                logger.debug("Auto-detected prediction type for '%s': %s", prediction, prediction_type)
+            if (
+                prediction not in self.num_features
+                and prediction not in self.cat_features
+            ):
+                prediction_type = (
+                    "num" if is_numeric_dtype(ref_data[prediction]) else "cat"
+                )
+                logger.debug(
+                    "Auto-detected prediction type for '%s': %s",
+                    prediction,
+                    prediction_type,
+                )
                 if prediction_type == "num" and prediction not in self.num_features:
                     self.num_features.append(prediction)
                 elif prediction_type == "cat" and prediction not in self.cat_features:
@@ -295,7 +353,9 @@ class Profiler:
 
         logger.info(
             "Profiler initialized successfully: %d num_features, %d cat_features, ref_data shape=%s",
-            len(self.num_features), len(self.cat_features), self.ref_data.shape,
+            len(self.num_features),
+            len(self.cat_features),
+            self.ref_data.shape,
         )
 
     def profile_ref_data(self) -> ReferenceDict:
@@ -321,7 +381,9 @@ class Profiler:
             low_cardinality = ref_data[col].nunique() <= thresh
 
             logger.debug(
-                "Profiling numeric feature: %s (low_cardinality=%s)", col, low_cardinality
+                "Profiling numeric feature: %s (low_cardinality=%s)",
+                col,
+                low_cardinality,
             )
 
             if low_cardinality:
@@ -339,9 +401,12 @@ class Profiler:
 
         if prediction_ref and (prediction_ref[self.prediction]["missing_rate"] > 0):
             missing_rate = prediction_ref[self.prediction]["missing_rate"]
-            logger.warning("Missing values found in prediction. Missing rate: %s", missing_rate)
+            logger.warning(
+                "Missing values found in prediction. Missing rate: %s", missing_rate
+            )
             warnings.warn(
-                f"Missing values in prediction. Missing rate: {missing_rate}", UserWarning
+                f"Missing values in prediction. Missing rate: {missing_rate}",
+                UserWarning,
             )
 
         if self.take_sample:
@@ -355,10 +420,10 @@ class Profiler:
             sample = self.ref_data
 
         result = {
-            'cat_ref': cat_ref,
-            'num_ref': num_ref,
-            'sample': sample,
-            'preds_ref': prediction_ref
+            "cat_ref": cat_ref,
+            "num_ref": num_ref,
+            "sample": sample,
+            "preds_ref": prediction_ref,
         }
 
         logger.info("ref_data profiling completed")
@@ -375,7 +440,9 @@ class Profiler:
     ) -> pd.DataFrame:
         target_size = max(min_size, multiplier * window_size)
         logger.debug(
-            "build_reference_sample: target_size=%s, original size=%s", target_size, len(full_values)
+            "build_reference_sample: target_size=%s, original size=%s",
+            target_size,
+            len(full_values),
         )
         if len(full_values) > target_size:
             rng = np.random.default_rng(random_state)
@@ -442,7 +509,10 @@ class Profiler:
 
         logger.debug(
             "Feature '%s': missing_rate=%.4f, cardinality_ratio=%.4f, categories to merge=%d",
-            cat_feature, missing_rate, cardinality_ratio, len(cats_to_merge),
+            cat_feature,
+            missing_rate,
+            cardinality_ratio,
+            len(cats_to_merge),
         )
 
         result = {
@@ -508,7 +578,12 @@ class Profiler:
 
         logger.debug(
             "Feature '%s': missing_rate=%.4f, mean=%s, std=%s, min=%s, max=%s",
-            num_feature, missing_rate, column_mean, column_std, column_min, column_max,
+            num_feature,
+            missing_rate,
+            column_mean,
+            column_std,
+            column_min,
+            column_max,
         )
 
         result = {
@@ -529,14 +604,16 @@ class Profiler:
         return result
 
     def _profile_low_card_num_feature(self, num_low_cord_feature):
-        logger.debug("Profiling low-cardinality numeric feature: %s", num_low_cord_feature)
+        logger.debug(
+            "Profiling low-cardinality numeric feature: %s", num_low_cord_feature
+        )
         result_num = self._profile_num_feature(num_low_cord_feature)
         del result_num["decile_bins"]
 
         result_cat = self._profile_cat_feature(num_low_cord_feature)
 
         result_num["low_cardinality"] = True
-        result_num['cardinality_ratio'] = result_cat['cardinality_ratio']
+        result_num["cardinality_ratio"] = result_cat["cardinality_ratio"]
         result_num["categories"] = result_cat["categories"]
         result_num["proportions"] = result_cat["proportions"]
         result_num["is_complete_category_list"] = result_cat[

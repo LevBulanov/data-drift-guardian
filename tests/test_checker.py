@@ -80,7 +80,6 @@ def test_check_event_missing_required_column_is_invalid(checker):
     assert "user_id" in error
 
 
-
 def test_check_event_invalid_type_is_invalid(checker):
     event = {
         "user_id": "not-an-int",
@@ -156,7 +155,6 @@ def test_check_df_missing_required_column_raises(checker, reference_df):
 
     with pytest.raises(ValueError, match="REQUIRED columns missing"):
         checker.check_df(df)
-
 
 
 def test_check_df_required_dtype_mismatch_raises(checker, reference_df):
@@ -371,7 +369,6 @@ def test_check_df_category_reference_accepts_object_input():
     assert pd.isna(values[2])
 
 
-
 def test_check_df_category_reference_rejects_non_string_input():
     reference_df = pd.DataFrame(
         {
@@ -384,6 +381,7 @@ def test_check_df_category_reference_rejects_non_string_input():
 
     with pytest.raises(ValueError, match="dtype mismatch"):
         checker.check_df(df)
+
 
 def test_check_df_reference_without_nan_current_with_nan_in_required_passes():
     reference_df = pd.DataFrame(

@@ -39,7 +39,13 @@ EXPECTED_RULES = {
         "domain": "stream_health",
         "owner": "data_engineering",
         "scope": "list",
-        "refs": {"stream_status", "metric_value", "warning_threshold", "critical_threshold", "C"},
+        "refs": {
+            "stream_status",
+            "metric_value",
+            "warning_threshold",
+            "critical_threshold",
+            "C",
+        },
         "for": "5m",
         "states": ("KeepLast", "KeepLast"),
     },
@@ -50,68 +56,137 @@ EXPECTED_RULES = {
         "domain": "stream_health",
         "owner": "data_engineering",
         "scope": "list",
-        "refs": {"stream_status", "metric_value", "warning_threshold", "critical_threshold", "C"},
+        "refs": {
+            "stream_status",
+            "metric_value",
+            "warning_threshold",
+            "critical_threshold",
+            "C",
+        },
         "for": "1m",
         "states": ("KeepLast", "KeepLast"),
     },
     "Prediction Drift Metrics – Warning": {
-        "uid": "efz3u94rcw6bke", "group": "Prediction Drift", "severity": "warning",
-        "domain": "prediction_drift", "owner": "ml_monitoring", "scope": "list",
-        "refs": {"metric_status", "metric_value", "C"}, "for": "0s",
+        "uid": "efz3u94rcw6bke",
+        "group": "Prediction Drift",
+        "severity": "warning",
+        "domain": "prediction_drift",
+        "owner": "ml_monitoring",
+        "scope": "list",
+        "refs": {"metric_status", "metric_value", "C"},
+        "for": "0s",
         "states": ("KeepLast", "KeepLast"),
     },
     "Prediction Drift Status – Warning": {
-        "uid": "afz3v51xspjpca", "group": "Prediction Drift", "severity": "warning",
-        "domain": "prediction_drift", "owner": "ml_monitoring", "scope": None,
-        "refs": {"prediction_status", "metric_count", "C"}, "for": "0s",
+        "uid": "afz3v51xspjpca",
+        "group": "Prediction Drift",
+        "severity": "warning",
+        "domain": "prediction_drift",
+        "owner": "ml_monitoring",
+        "scope": None,
+        "refs": {"prediction_status", "metric_count", "C"},
+        "for": "0s",
         "states": ("KeepLast", "KeepLast"),
     },
     "Prediction Drift Metrics – Critical": {
-        "uid": "cfz3xhezruigwd", "group": "Prediction Drift", "severity": "critical",
-        "domain": "prediction_drift", "owner": "ml_monitoring", "scope": "list",
-        "refs": {"metric_status", "metric_value", "C"}, "for": "0s",
+        "uid": "cfz3xhezruigwd",
+        "group": "Prediction Drift",
+        "severity": "critical",
+        "domain": "prediction_drift",
+        "owner": "ml_monitoring",
+        "scope": "list",
+        "refs": {"metric_status", "metric_value", "C"},
+        "for": "0s",
         "states": ("KeepLast", "KeepLast"),
     },
     "Prediction Drift Status – Critical": {
-        "uid": "dfz3xmztsy8lcd", "group": "Prediction Drift", "severity": "critical",
-        "domain": "prediction_drift", "owner": "ml_monitoring", "scope": None,
-        "refs": {"prediction_status", "metric_count", "C"}, "for": "0s",
+        "uid": "dfz3xmztsy8lcd",
+        "group": "Prediction Drift",
+        "severity": "critical",
+        "domain": "prediction_drift",
+        "owner": "ml_monitoring",
+        "scope": None,
+        "refs": {"prediction_status", "metric_count", "C"},
+        "for": "0s",
         "states": ("KeepLast", "KeepLast"),
     },
     "Drift Exporter – Unavailable": {
-        "uid": "exporterdown01", "group": "System Health", "severity": "critical",
-        "domain": "system_health", "owner": "data_engineering", "scope": None,
-        "refs": {"exporter_down", "C"}, "for": "1m",
+        "uid": "exporterdown01",
+        "group": "System Health",
+        "severity": "critical",
+        "domain": "system_health",
+        "owner": "data_engineering",
+        "scope": None,
+        "refs": {"exporter_down", "C"},
+        "for": "1m",
         "states": ("Alerting", "Alerting"),
     },
     "Drift Analysis – Stale": {
-        "uid": "analysisstale01", "group": "System Health", "severity": "critical",
-        "domain": "system_health", "owner": "data_engineering", "scope": None,
-        "refs": {"analysis_stale", "C"}, "for": "1m",
+        "uid": "analysisstale01",
+        "group": "System Health",
+        "severity": "critical",
+        "domain": "system_health",
+        "owner": "data_engineering",
+        "scope": None,
+        "refs": {"analysis_stale", "C"},
+        "for": "1m",
         "states": ("Alerting", "Alerting"),
     },
     "Input Data Drift – Critical": {
-        "uid": "cfz1chowchhq8c", "group": "Window Drift", "severity": "critical",
-        "domain": "input_drift", "owner": "ml_monitoring", "scope": None,
-        "refs": {"overall_status", "drifted_features", "evaluated_features", "critical_metrics", "warning_metrics", "C"},
-        "for": "0s", "states": ("KeepLast", "KeepLast"),
+        "uid": "cfz1chowchhq8c",
+        "group": "Window Drift",
+        "severity": "critical",
+        "domain": "input_drift",
+        "owner": "ml_monitoring",
+        "scope": None,
+        "refs": {
+            "overall_status",
+            "drifted_features",
+            "evaluated_features",
+            "critical_metrics",
+            "warning_metrics",
+            "C",
+        },
+        "for": "0s",
+        "states": ("KeepLast", "KeepLast"),
     },
     "Input Data Drift – Warning": {
-        "uid": "dfz3caqbwckqob", "group": "Window Drift", "severity": "warning",
-        "domain": "input_drift", "owner": "ml_monitoring", "scope": None,
-        "refs": {"overall_status", "warning_features", "evaluated_features", "warning_metrics", "C"},
-        "for": "0s", "states": ("KeepLast", "KeepLast"),
+        "uid": "dfz3caqbwckqob",
+        "group": "Window Drift",
+        "severity": "warning",
+        "domain": "input_drift",
+        "owner": "ml_monitoring",
+        "scope": None,
+        "refs": {
+            "overall_status",
+            "warning_features",
+            "evaluated_features",
+            "warning_metrics",
+            "C",
+        },
+        "for": "0s",
+        "states": ("KeepLast", "KeepLast"),
     },
     "Feature Drift – Critical": {
-        "uid": "efz3e3h2h3gn4b", "group": "Window Drift", "severity": "critical",
-        "domain": "input_drift", "owner": "ml_monitoring", "scope": "list",
-        "refs": {"feature_status", "metric_count", "C"}, "for": "0s",
+        "uid": "efz3e3h2h3gn4b",
+        "group": "Window Drift",
+        "severity": "critical",
+        "domain": "input_drift",
+        "owner": "ml_monitoring",
+        "scope": "list",
+        "refs": {"feature_status", "metric_count", "C"},
+        "for": "0s",
         "states": ("KeepLast", "KeepLast"),
     },
     "Feature Drift – Warning": {
-        "uid": "cfz45ainayk1sc", "group": "Window Drift", "severity": "warning",
-        "domain": "input_drift", "owner": "ml_monitoring", "scope": "list",
-        "refs": {"feature_status", "metric_count", "C"}, "for": "0s",
+        "uid": "cfz45ainayk1sc",
+        "group": "Window Drift",
+        "severity": "warning",
+        "domain": "input_drift",
+        "owner": "ml_monitoring",
+        "scope": "list",
+        "refs": {"feature_status", "metric_count", "C"},
+        "for": "0s",
         "states": ("KeepLast", "KeepLast"),
     },
 }
@@ -372,9 +447,9 @@ def test_warning_to_critical_transition_has_no_silent_gap() -> None:
     stream_condition = _query(_rule("Stream Health – Warning"), "C")
     evaluator = stream_condition["model"]["conditions"][0]["evaluator"]
     assert evaluator == {"params": [1], "type": "eq"}
-    stream_expression = _query(
-        _rule("Stream Health – Warning"), "stream_status"
-    )["model"]["expr"]
+    stream_expression = _query(_rule("Stream Health – Warning"), "stream_status")[
+        "model"
+    ]["expr"]
     assert "unless on(instance, metric)" in stream_expression
     assert "[1m:]" in stream_expression
 
@@ -409,12 +484,13 @@ def test_system_health_covers_exporter_and_stale_analysis() -> None:
     exporter = _rule("Drift Exporter – Unavailable")
     stale = _rule("Drift Analysis – Stale")
 
-    assert 'up{job="drift-exporter"}' in _query(
-        exporter, "exporter_down"
-    )["model"]["expr"]
-    assert "drift_report_timestamp_seconds" in _query(
-        stale, "analysis_stale"
-    )["model"]["expr"]
+    assert (
+        'up{job="drift-exporter"}' in _query(exporter, "exporter_down")["model"]["expr"]
+    )
+    assert (
+        "drift_report_timestamp_seconds"
+        in _query(stale, "analysis_stale")["model"]["expr"]
+    )
     for rule in (exporter, stale):
         assert rule["for"] == "1m"
         assert rule["noDataState"] == "Alerting"

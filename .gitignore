@@ -4,6 +4,7 @@
 
 # Python-окружение и кэши
 .venv/
+myenv/
 __pycache__/
 *.py[cod]
 .pytest_cache/

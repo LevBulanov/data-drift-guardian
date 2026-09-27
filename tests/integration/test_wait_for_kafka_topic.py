@@ -45,5 +45,6 @@ def test_timeout_when_broker_unreachable() -> None:
 )
 def test_rejects_invalid_arguments(timeout: float, retry: float) -> None:
     with pytest.raises(ValueError):
-        wait_for_kafka_topic("127.0.0.1:9092", "t", timeout_seconds=timeout,
-                             retry_interval_seconds=retry)
+        wait_for_kafka_topic(
+            "127.0.0.1:9092", "t", timeout_seconds=timeout, retry_interval_seconds=retry
+        )

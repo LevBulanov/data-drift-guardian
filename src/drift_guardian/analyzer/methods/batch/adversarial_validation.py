@@ -108,9 +108,7 @@ def adversarial_validation(
     logger.debug("Combined feature matrix shape: %s", features.shape)
 
     # Подготовка признаков: приведение типов к типам reference, обработка пропусков
-    features = _prepare_features(
-        features, reference, missing_category=missing_category
-    )
+    features = _prepare_features(features, reference, missing_category=missing_category)
     logger.debug("Feature preparation completed for %d columns", features.shape[1])
 
     # Создание целевой переменной: 0 для reference, 1 для current
@@ -192,9 +190,7 @@ def adversarial_validation(
             num_iteration=model.best_iteration_,
         )[:, 1]
 
-        fold_auc = float(
-            roc_auc_score(y_val, oof_probabilities[validation_indices])
-        )
+        fold_auc = float(roc_auc_score(y_val, oof_probabilities[validation_indices]))
         fold_aucs.append(fold_auc)
         logger.info("Fold %d ROC AUC: %.4f", fold_index, fold_auc)
 

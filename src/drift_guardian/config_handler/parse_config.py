@@ -104,8 +104,7 @@ class TypedMetricsConfig(BaseModel):
 
             if wrong:
                 raise ValueError(
-                    f"{[m.value for m in wrong]} "
-                    "недопустим(ы) для categorical-фичей"
+                    f"{[m.value for m in wrong]} недопустим(ы) для categorical-фичей"
                 )
 
         if self.type == FeatureType.numeric:
@@ -113,8 +112,7 @@ class TypedMetricsConfig(BaseModel):
 
             if wrong:
                 raise ValueError(
-                    f"{[m.value for m in wrong]} "
-                    "недопустим(ы) для numeric-фичей"
+                    f"{[m.value for m in wrong]} недопустим(ы) для numeric-фичей"
                 )
 
         return self
@@ -170,9 +168,7 @@ class PredictionMetricsConfig(TypedMetricsConfig):
             missing.append("score_column")
 
         if missing:
-            raise ValueError(
-                f"При enabled=True обязательны поля: {', '.join(missing)}"
-            )
+            raise ValueError(f"При enabled=True обязательны поля: {', '.join(missing)}")
 
         return self
 
@@ -229,7 +225,7 @@ class LightGBMConfig(BaseModel):
     learning_rate: float = 0.05
     max_depth: int = 4
     num_leaves: int = 15
-    importance_type: str = 'gain'
+    importance_type: str = "gain"
     min_child_samples: int = 20
     subsample: float = 1.0
     subsample_freq: int = 0
@@ -244,11 +240,7 @@ class LightGBMConfig(BaseModel):
     verbosity: int = -1
 
     def to_params(self) -> dict:
-        return {
-            k: v
-            for k, v in self.model_dump().items()
-            if v is not None
-        }
+        return {k: v for k, v in self.model_dump().items() if v is not None}
 
 
 class AdversarialValidationConfig(BaseModel):

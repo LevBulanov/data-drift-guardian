@@ -4,6 +4,7 @@ from drift_guardian.schema.models import ReferenceDict
 
 import pandas as pd
 
+
 @register(Metric.missing_rate)
 def compute_missing_rate(reference_dict: ReferenceDict, current: pd.Series):
     feature = current.name

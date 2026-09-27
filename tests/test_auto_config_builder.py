@@ -49,10 +49,7 @@ def patch_metric_registry(monkeypatch):
         "kstest",
     ]
 
-    registry = {
-        acb._metric(name): make_metric_fn(name)
-        for name in metric_names
-    }
+    registry = {acb._metric(name): make_metric_fn(name) for name in metric_names}
 
     monkeypatch.setattr(acb, "METRIC_REGISTRY", registry)
 
@@ -285,7 +282,9 @@ def test_feature_local_thresholds_are_normalized(df):
     }
 
     parsed = config_from_dict(config)
-    assert parsed.features["age"].resolved_thresholds[acb.MetricEnum("psi")].warning == 0.2
+    assert (
+        parsed.features["age"].resolved_thresholds[acb.MetricEnum("psi")].warning == 0.2
+    )
 
 
 def test_missing_thresholds_raise_when_auto_thresholds_disabled(df):
@@ -353,7 +352,9 @@ def test_invalid_stream_drift_direction_raises(df):
         acb.build_drift_config(df, options)
 
 
-def test_auto_thresholds_generate_global_feature_and_prediction_thresholds(df, monkeypatch):
+def test_auto_thresholds_generate_global_feature_and_prediction_thresholds(
+    df, monkeypatch
+):
     class DummyProfiler:
         def __init__(self, **kwargs):
             self.kwargs = kwargs
@@ -578,7 +579,9 @@ def test_compute_metric_safe_returns_none_for_non_finite(monkeypatch, df):
     assert result is None
 
 
-def test_compute_metric_safe_warns_and_returns_none_when_ignore_errors_true(monkeypatch, df):
+def test_compute_metric_safe_warns_and_returns_none_when_ignore_errors_true(
+    monkeypatch, df
+):
     metric = acb._metric("psi")
 
     def failing_metric(reference_dict, current, **kwargs):

@@ -240,7 +240,9 @@ def run(runtime: RuntimeContext) -> None:
 
             current_df = window.to_dataframe()
             try:
-                report, adversarial_result = analyze_current_dataframe(runtime, current_df)
+                report, adversarial_result = analyze_current_dataframe(
+                    runtime, current_df
+                )
                 _export_completed_analysis(
                     exporter,
                     runtime,
@@ -263,9 +265,7 @@ def run(runtime: RuntimeContext) -> None:
             window.clear()
             exporter.set_current_window_events(0)
             stream.reset_window()
-            exporter.update_stream(
-                stream.snapshot(window.event_times(), ready=True)
-            )
+            exporter.update_stream(stream.snapshot(window.event_times(), ready=True))
     finally:
         consumer.close()
         metrics_server.shutdown()

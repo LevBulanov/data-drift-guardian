@@ -69,15 +69,15 @@ NON_JSON_PAYLOADS = {
     ids=list(NON_JSON_PAYLOADS),
 )
 def test_non_json_message_is_skipped(
-        runtime,
-        no_signal_handlers,
-        produce,
-        topic,
-        make_event,
-        captured_analyses,
-        consumer_runner,
-        wait_until,
-        bad_payload: bytes,
+    runtime,
+    no_signal_handlers,
+    produce,
+    topic,
+    make_event,
+    captured_analyses,
+    consumer_runner,
+    wait_until,
+    bad_payload: bytes,
 ) -> None:
     """Не-JSON сообщение пропускается: окно закрывается только валидными.
 
@@ -100,15 +100,15 @@ def test_non_json_message_is_skipped(
 
 
 def test_non_json_messages_do_not_increment_processed_counter(
-        runtime,
-        no_signal_handlers,
-        produce,
-        topic,
-        make_event,
-        captured_analyses,
-        consumer_runner,
-        wait_until,
-        metric_value: Callable[..., float],
+    runtime,
+    no_signal_handlers,
+    produce,
+    topic,
+    make_event,
+    captured_analyses,
+    consumer_runner,
+    wait_until,
+    metric_value: Callable[..., float],
 ) -> None:
     """Пропущенные сообщения не попадают в drift_events_processed."""
     produce(topic, list(NON_JSON_PAYLOADS.values()))
@@ -166,15 +166,15 @@ INVALID_EVENT_PAYLOADS = {
     ids=list(INVALID_EVENT_PAYLOADS),
 )
 def test_invalid_event_structure_is_skipped(
-        runtime,
-        no_signal_handlers,
-        produce,
-        topic,
-        make_event,
-        captured_analyses,
-        consumer_runner,
-        wait_until,
-        bad_event: dict[str, Any],
+    runtime,
+    no_signal_handlers,
+    produce,
+    topic,
+    make_event,
+    captured_analyses,
+    consumer_runner,
+    wait_until,
+    bad_event: dict[str, Any],
 ) -> None:
     """ValueError из from_dict логируется, событие пропускается."""
     payloads: list[Any] = [make_event(0), bad_event]
@@ -193,16 +193,16 @@ def test_invalid_event_structure_is_skipped(
 
 
 def test_only_invalid_events_never_fill_window(
-        runtime,
-        no_signal_handlers,
-        produce,
-        topic,
-        captured_analyses,
-        consumer_runner,
-        wait_until,
-        committed_offset,
-        group_id,
-        metric_value: Callable[..., float],
+    runtime,
+    no_signal_handlers,
+    produce,
+    topic,
+    captured_analyses,
+    consumer_runner,
+    wait_until,
+    committed_offset,
+    group_id,
+    metric_value: Callable[..., float],
 ) -> None:
     """Поток из одних невалидных сообщений: окно пустое, коммита нет."""
     produce(topic, list(NON_JSON_PAYLOADS.values()))
@@ -229,14 +229,14 @@ def test_only_invalid_events_never_fill_window(
 
 
 def test_consumer_survives_burst_of_invalid_messages(
-        runtime,
-        no_signal_handlers,
-        produce,
-        topic,
-        make_event,
-        captured_analyses,
-        consumer_runner,
-        wait_until,
+    runtime,
+    no_signal_handlers,
+    produce,
+    topic,
+    make_event,
+    captured_analyses,
+    consumer_runner,
+    wait_until,
 ) -> None:
     """50 битых сообщений подряд, затем валидное окно — анализ проходит."""
     payloads: list[Any] = [b"{broken" for _ in range(50)]
@@ -365,7 +365,6 @@ def test_invalid_event_time_does_not_block_valid_events(
     assert processed == WINDOW_SIZE
 
 
-
 def test_invalid_event_time_rate_on_live_window(
     runtime,
     no_signal_handlers,
@@ -396,11 +395,14 @@ def test_invalid_event_time_rate_on_live_window(
         )
 
         # Остаток: 2 битых по времени + 1 валидное (окно не закроется).
-        produce(topic, [
-            payload_with_event_time(100, "garbage"),
-            payload_with_event_time(101, "garbage"),
-            make_event(WINDOW_SIZE),
-        ])
+        produce(
+            topic,
+            [
+                payload_with_event_time(100, "garbage"),
+                payload_with_event_time(101, "garbage"),
+                make_event(WINDOW_SIZE),
+            ],
+        )
 
         wait_until(
             lambda: metric_value("drift_invalid_event_time_rate") > 0.0,
@@ -434,11 +436,14 @@ def test_window_time_span_ignores_invalid_time_events(
         )
 
         base = dt.datetime.now(dt.UTC)
-        produce(topic, [
-            make_event(100, event_time=base),
-            payload_with_event_time(101, "garbage"),
-            make_event(102, event_time=base + dt.timedelta(seconds=45)),
-        ])
+        produce(
+            topic,
+            [
+                make_event(100, event_time=base),
+                payload_with_event_time(101, "garbage"),
+                make_event(102, event_time=base + dt.timedelta(seconds=45)),
+            ],
+        )
 
         wait_until(
             lambda: metric_value("drift_window_time_span_seconds") > 0.0,
@@ -456,14 +461,14 @@ def test_window_time_span_ignores_invalid_time_events(
 
 
 def test_extra_feature_column_does_not_crash(
-        runtime,
-        no_signal_handlers,
-        produce,
-        topic,
-        make_event,
-        captured_analyses,
-        consumer_runner,
-        wait_until,
+    runtime,
+    no_signal_handlers,
+    produce,
+    topic,
+    make_event,
+    captured_analyses,
+    consumer_runner,
+    wait_until,
 ) -> None:
     """Лишняя фича, которой нет в reference: consumer не падает."""
     payloads: list[Any] = []
@@ -485,14 +490,14 @@ def test_extra_feature_column_does_not_crash(
 
 
 def test_missing_feature_produces_nan(
-        runtime,
-        no_signal_handlers,
-        produce,
-        topic,
-        make_event,
-        captured_analyses,
-        consumer_runner,
-        wait_until,
+    runtime,
+    no_signal_handlers,
+    produce,
+    topic,
+    make_event,
+    captured_analyses,
+    consumer_runner,
+    wait_until,
 ) -> None:
     """Часть событий без f3: в DataFrame появляется NaN, падения нет."""
     payloads: list[Any] = []
@@ -517,14 +522,14 @@ def test_missing_feature_produces_nan(
 
 
 def test_string_and_null_feature_values_accepted(
-        runtime,
-        no_signal_handlers,
-        produce,
-        topic,
-        make_event,
-        captured_analyses,
-        consumer_runner,
-        wait_until,
+    runtime,
+    no_signal_handlers,
+    produce,
+    topic,
+    make_event,
+    captured_analyses,
+    consumer_runner,
+    wait_until,
 ) -> None:
     """Строка и null — JSON-скаляры, события принимаются."""
     payloads: list[Any] = []
@@ -554,17 +559,17 @@ def test_string_and_null_feature_values_accepted(
 
 
 def test_analysis_failure_still_commits_offset(
-        runtime,
-        no_signal_handlers,
-        produce,
-        topic,
-        group_id,
-        make_event,
-        committed_offset,
-        consumer_runner,
-        wait_until,
-        metric_value: Callable[..., float],
-        monkeypatch: pytest.MonkeyPatch,
+    runtime,
+    no_signal_handlers,
+    produce,
+    topic,
+    group_id,
+    make_event,
+    committed_offset,
+    consumer_runner,
+    wait_until,
+    metric_value: Callable[..., float],
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """При падении анализа окно очищается и offset коммитится.
 
@@ -601,6 +606,7 @@ def test_analysis_failure_still_commits_offset(
 
     assert runner.error is None
     assert len(attempts) == 1
+
 
 def test_window_is_lost_not_retried_after_failure(
     runtime,
@@ -761,7 +767,6 @@ def test_stop_with_partial_window_does_not_analyze(
     assert committed_offset(group_id, topic) is None
 
 
-
 def test_stop_with_empty_window_does_not_analyze(
     runtime,
     no_signal_handlers,
@@ -820,7 +825,6 @@ def test_stop_after_full_window_does_not_double_analyze(
 
     # window.clear() отработал, слив нечего анализировать.
     assert len(captured_analyses) == 1
-
 
 
 # --------------------------------------------------------------------------
@@ -892,14 +896,18 @@ def test_invalid_time_events_mixed_with_broken_messages(
 
     # Окно 1: 5 валидных событий, между ними мусор всех трёх веток.
     payloads: list[Any] = [
-        b"\xff\xfe",                                              # не-JSON
+        b"\xff\xfe",  # не-JSON
         make_event(0),
-        {"event_id": "x", "f1": [1, 2]},                          # InvalidEventTime (нет event_time)
+        {"event_id": "x", "f1": [1, 2]},  # InvalidEventTime (нет event_time)
         make_event(1),
-        b"[]",                                                    # не JSON-объект
+        b"[]",  # не JSON-объект
         make_event(2),
-        {"event_id": "y", "event_time": valid_iso, "f1": [1, 2]}, # ValueError (битая фича)
-        payload_with_event_time(10, "garbage"),                   # InvalidEventTime (не парсится)
+        {
+            "event_id": "y",
+            "event_time": valid_iso,
+            "f1": [1, 2],
+        },  # ValueError (битая фича)
+        payload_with_event_time(10, "garbage"),  # InvalidEventTime (не парсится)
         b"{broken",
         make_event(3),
         make_event(4),
@@ -947,10 +955,13 @@ def test_all_branches_tracked_on_residual_window(
         )
 
         # Остаток: битое по времени + валидное (окно не закроется).
-        produce(topic, [
-            payload_with_event_time(20, "garbage"),
-            make_event(WINDOW_SIZE),
-        ])
+        produce(
+            topic,
+            [
+                payload_with_event_time(20, "garbage"),
+                make_event(WINDOW_SIZE),
+            ],
+        )
 
         wait_until(
             lambda: metric_value("drift_invalid_event_time_rate") > 0.0,
@@ -960,6 +971,3 @@ def test_all_branches_tracked_on_residual_window(
         print(f"invalid_event_time_rate на остатке: {rate}")
 
     assert len(captured_analyses) == 1
-
-
-

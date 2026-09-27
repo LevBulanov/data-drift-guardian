@@ -35,7 +35,6 @@ def test_prometheus_and_grafana_are_shared_services() -> None:
         assert services[service_name]["profiles"] == ["local-kafka"]
 
 
-
 def test_prometheus_separates_mock_and_realtime_without_custom_mode_label() -> None:
     """Проверяет отдельные targets без дополнительного label в drift-метриках."""
     config = yaml.safe_load(PROMETHEUS_PATH.read_text(encoding="utf-8"))

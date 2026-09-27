@@ -74,12 +74,8 @@ def prepare_features_data() -> tuple[pd.DataFrame, pd.DataFrame]:
 @pytest.fixture()
 def datetime_reference_current() -> tuple[pd.DataFrame, pd.DataFrame]:
     """Reference/current с datetime-признаком."""
-    reference = pd.DataFrame(
-        {"timestamp": pd.date_range("2026-01-01", periods=6)}
-    )
-    current = pd.DataFrame(
-        {"timestamp": pd.date_range("2026-02-01", periods=6)}
-    )
+    reference = pd.DataFrame({"timestamp": pd.date_range("2026-01-01", periods=6)})
+    current = pd.DataFrame({"timestamp": pd.date_range("2026-02-01", periods=6)})
     return reference, current
 
 
@@ -343,6 +339,6 @@ def test_lightgbm_params_are_merged_and_invariants_are_preserved(
         assert model.params["metric"] == "auc"
         assert "eval_metric" not in model.fit_kwargs
         assert "eval_X" not in model.fit_kwargs
-        assert "eval_y"  not in model.fit_kwargs
+        assert "eval_y" not in model.fit_kwargs
         assert "eval_set" in model.fit_kwargs
         assert model.fit_kwargs["callbacks"] == ["callback"]

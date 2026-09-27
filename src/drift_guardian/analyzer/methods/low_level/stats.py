@@ -38,9 +38,7 @@ def psi(ref_counts, actual_counts, epsilon=1e-4, bin_cap=2.0):
 
     psi_components = (actual_pct - expected_pct) * np.log(actual_pct / expected_pct)
 
-    clipped_count = np.sum(
-        (psi_components > bin_cap) | (psi_components < -bin_cap)
-    )
+    clipped_count = np.sum((psi_components > bin_cap) | (psi_components < -bin_cap))
     if clipped_count:
         logger.debug(
             "psi: clipping %d/%d bin components to [-%s, %s]",
@@ -61,7 +59,7 @@ def js_divergence(ref_counts, actual_counts, base=2):
     logger.debug("js_divergence: base=%s, n_bins=%d", base, len(ref_counts))
 
     js_distance = distance.jensenshannon(ref_counts, actual_counts, base=base)
-    result = js_distance ** 2
+    result = js_distance**2
 
     logger.debug("js_divergence: computed value=%.6f", result)
     return result
@@ -124,16 +122,11 @@ def unseen_category_rate(ref_freq: dict, actual_freq: dict) -> float:
 
     ref_cats = set(ref_freq.keys())
 
-    unseen_count = sum(
-        freq for cat, freq in actual_freq.items()
-        if cat not in ref_cats
-    )
+    unseen_count = sum(freq for cat, freq in actual_freq.items() if cat not in ref_cats)
     total_count = sum(actual_freq.values())
 
     if total_count == 0:
-        logger.warning(
-            "unseen_category_rate: total_count is zero, returning 0.0"
-        )
+        logger.warning("unseen_category_rate: total_count is zero, returning 0.0")
         return 0.0
 
     result = unseen_count / total_count
@@ -157,13 +150,15 @@ def category_churn(ref_freq: dict, actual_freq: dict) -> float:
     ref_cats = set(ref_freq.keys())
     actual_cats = set(actual_freq.keys())
 
-    new_cats = actual_cats - ref_cats          # появились
-    disappeared_cats = ref_cats - actual_cats   # исчезли
+    new_cats = actual_cats - ref_cats  # появились
+    disappeared_cats = ref_cats - actual_cats  # исчезли
 
     all_cats = ref_cats | actual_cats
 
     if len(all_cats) == 0:
-        logger.warning("category_churn: no categories found in either dataset, returning 0.0")
+        logger.warning(
+            "category_churn: no categories found in either dataset, returning 0.0"
+        )
         return 0.0
 
     result = (len(new_cats) + len(disappeared_cats)) / len(all_cats)
@@ -178,7 +173,9 @@ def category_churn(ref_freq: dict, actual_freq: dict) -> float:
     return result
 
 
-def cardinality_ratio_abs_diff(ref_cardinality_ratio: float, current: pd.Series) -> float:
+def cardinality_ratio_abs_diff(
+    ref_cardinality_ratio: float, current: pd.Series
+) -> float:
     logger.debug(
         "cardinality_ratio_abs_diff: ref_ratio=%.6f, current_size=%d",
         ref_cardinality_ratio,

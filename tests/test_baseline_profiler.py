@@ -87,7 +87,9 @@ def test_init_adds_categorical_prediction_to_cat_features(ref_df):
 
 
 def test_init_ref_data_must_be_dataframe():
-    with pytest.raises(ValueError, match="ref_data must be provided in pandas DataFrame format"):
+    with pytest.raises(
+        ValueError, match="ref_data must be provided in pandas DataFrame format"
+    ):
         Profiler(
             ref_data={"num": [1, 2, 3]},
             window_size=3,
@@ -124,7 +126,10 @@ def test_init_ref_data_must_be_dataframe():
         ({"take_sample": 1}, "sample must be bool"),
         ({"sample_float_dtype": 123}, "sample_dtype must be str"),
         ({"sample_float_dtype": "not-a-dtype"}, "Invalid numpy dtype"),
-        ({"sample_float_dtype": "int64"}, "sample_dtype must be a numpy floating dtype"),
+        (
+            {"sample_float_dtype": "int64"},
+            "sample_dtype must be a numpy floating dtype",
+        ),
         ({"random_state": True}, "random_state must be int or None"),
         ({"random_state": "42"}, "random_state must be int or None"),
     ],

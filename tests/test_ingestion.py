@@ -145,16 +145,12 @@ def test_analyzer_runs_only_for_full_window() -> None:
         return {"overall_status": "ok", "features": {}}
 
     window.append(
-        KafkaEvent.from_dict(
-            {"event_id": 1, "event_time": now.isoformat(), "value": 1}
-        )
+        KafkaEvent.from_dict({"event_id": 1, "event_time": now.isoformat(), "value": 1})
     )
     assert analyze_window(window, analyzer) is None
 
     window.append(
-        KafkaEvent.from_dict(
-            {"event_id": 2, "event_time": now.isoformat(), "value": 2}
-        )
+        KafkaEvent.from_dict({"event_id": 2, "event_time": now.isoformat(), "value": 2})
     )
     report = analyze_window(window, analyzer)
 
@@ -397,8 +393,7 @@ def test_reference_profile_exports_only_agreed_metadata() -> None:
 
     assert (
         'drift_reference_profile_info{dataset_name="demo",'
-        'profile_created_at="2026-09-16T10:00:00Z"} 1.0'
-        in metrics
+        'profile_created_at="2026-09-16T10:00:00Z"} 1.0' in metrics
     )
     assert "profile_name" not in metrics
     assert "profile_version" not in metrics
@@ -490,9 +485,7 @@ def test_metric_status_falls_back_to_feature_status_and_prediction_resets() -> N
             "features": {
                 "age": {
                     "type": "numeric",
-                    "metrics": {
-                        "psi": {"value": 0.15, "status": "warning"}
-                    },
+                    "metrics": {"psi": {"value": 0.15, "status": "warning"}},
                 }
             },
             "prediction": {
@@ -505,10 +498,7 @@ def test_metric_status_falls_back_to_feature_status_and_prediction_resets() -> N
     )
     metrics = generate_latest(registry).decode()
     assert 'drift_status_feature{feature="age",type="numeric"} 1.0' in metrics
-    assert (
-        'drift_status_feature{feature="prediction",type="numeric"} 1.0'
-        in metrics
-    )
+    assert 'drift_status_feature{feature="prediction",type="numeric"} 1.0' in metrics
 
     exporter.update_report(
         {
@@ -542,11 +532,7 @@ def test_exporter_accepts_flat_core_report() -> None:
 
     metrics = generate_latest(registry).decode()
     assert (
-        'drift_metric_value{feature="age",metric="psi",type="numeric"} 0.31'
-        in metrics
+        'drift_metric_value{feature="age",metric="psi",type="numeric"} 0.31' in metrics
     )
-    assert (
-        'drift_status{feature="age",metric="psi",type="numeric"} 2.0'
-        in metrics
-    )
+    assert 'drift_status{feature="age",metric="psi",type="numeric"} 2.0' in metrics
     assert 'drift_threshold{level="critical",metric="psi"} 0.25' in metrics
