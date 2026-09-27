@@ -146,4 +146,4 @@ def test_dashboard_uses_config_presence_for_prediction_and_names_previous_av() -
 
     assert 'count(drift_threshold{metric=~\\"prediction_.+\\"})' in dashboard
     assert '"fixed": "Prev-AV sim."' in dashboard
-    assert '"text": "waiting next AV"' in dashboard
+    assert '"text": "–"' in dashboard
