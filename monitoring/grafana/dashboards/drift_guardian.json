@@ -14391,7 +14391,7 @@
                               "-1": {
                                 "color": "text",
                                 "index": 0,
-                                "text": "Waiting for AV"
+                                "text": "–"
                               }
                             },
                             "type": "value"
@@ -16098,7 +16098,7 @@
                         "refId": "PrometheusVariableQueryEditor-VariableQuery"
                       }
                     },
-                    "regex": "/(\\d+)\\s+\\d+$/",
+                    "regex": "/^\\{\\}\\s+(\\d+)(?:\\.0+)?\\s+\\d+(?:\\.\\d+)?$/",
                     "regexApplyTo": "value",
                     "sort": "disabled",
                     "definition": "query_result(max(process_start_time_seconds{job=\"drift-exporter\"}) * 1000)",
