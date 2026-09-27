@@ -16,7 +16,18 @@ groups:
               datasourceUid: cfxnbdacrd728d
               model:
                 editorMode: code
-                expr: max(drift_av_status) and on() (max(drift_av_status_streak{status="warning"}) >= 4)
+                expr: |-
+                    # Current adversarial validation status after at least 4 consecutive warning windows
+                    max(drift_av_status)
+                    and on()
+                    (max(drift_av_status_streak{status="warning"}) >= 4)
+                    # Require warning status to have persisted for at least 5 minutes
+                    and on()
+                    (min_over_time((max(drift_av_status) == bool 1)[5m:]) == 1)
+                    and on()
+                    (max(drift_av_status offset 5m) == 1)
+                    # Return 0 while the AV status exists but does not meet the streak condition
+                    or (0 * max(drift_av_status))
                 instant: true
                 intervalMs: 1000
                 legendFormat: __auto
@@ -100,8 +111,9 @@ groups:
                 maxDataPoints: 43200
                 refId: C
                 type: threshold
+          for: 0s
           noDataState: KeepLast
-          execErrState: Error
+          execErrState: KeepLast
           annotations:
             action: Inspect the drift drivers and analysis context in the Adversarial Validation section.
             description: |-
@@ -119,7 +131,7 @@ groups:
           notification_settings:
             receiver: Drift Guardian Alerts Telegram
             active_time_intervals:
-                - working-hours-morning
+                - working-hours
         - uid: cfz40uwii8a9sd
           title: AV Drift – Critical
           condition: C
@@ -131,7 +143,18 @@ groups:
               datasourceUid: cfxnbdacrd728d
               model:
                 editorMode: code
-                expr: max(drift_av_status) and on() (max(drift_av_status_streak{status="critical"}) >= 4)
+                expr: |-
+                    # Current adversarial validation status after at least 4 consecutive critical windows
+                    max(drift_av_status)
+                    and on()
+                    (max(drift_av_status_streak{status="critical"}) >= 4)
+                    # Require critical status to have persisted for at least 5 minutes
+                    and on()
+                    (min_over_time((max(drift_av_status) == bool 2)[5m:]) == 1)
+                    and on()
+                    (max(drift_av_status offset 5m) == 2)
+                    # Return 0 while the AV status exists but does not meet the streak condition
+                    or (0 * max(drift_av_status))
                 instant: true
                 intervalMs: 1000
                 legendFormat: __auto
@@ -215,8 +238,9 @@ groups:
                 maxDataPoints: 43200
                 refId: C
                 type: threshold
+          for: 0s
           noDataState: KeepLast
-          execErrState: Error
+          execErrState: KeepLast
           annotations:
             action: Inspect the drift drivers and analysis context in the Adversarial Validation section.
             description: |-
@@ -234,7 +258,280 @@ groups:
           notification_settings:
             receiver: Drift Guardian Alerts Telegram
     - orgId: 1
-      name: Prediction Drift (1m)
+      name: Stream Health
+      folder: Drift Guardian
+      interval: 10s
+      rules:
+        - uid: streamwarn01
+          title: Stream Health – Warning
+          condition: C
+          data:
+            - refId: stream_status
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: cfxnbdacrd728d
+              model:
+                editorMode: code
+                expr: |-
+                    # Calculate 0/1/2 status for every configured stream metric
+                    (
+                      (
+                        label_replace(drift_event_time_lag_seconds, "metric", "drift_event_time_lag_seconds", "__name__", ".*")
+                        or label_replace(drift_window_time_span_seconds, "metric", "drift_window_time_span_seconds", "__name__", ".*")
+                        or label_replace(drift_max_event_gap_seconds, "metric", "drift_max_event_gap_seconds", "__name__", ".*")
+                        or label_replace(drift_invalid_event_time_rate, "metric", "drift_invalid_event_time_rate", "__name__", ".*")
+                        or label_replace(drift_late_event_rate, "metric", "drift_late_event_rate", "__name__", ".*")
+                      )
+                      >= bool on(metric)
+                      drift_stream_threshold{level="warning"}
+                    )
+                    + on(metric)
+                    (
+                      (
+                        label_replace(drift_event_time_lag_seconds, "metric", "drift_event_time_lag_seconds", "__name__", ".*")
+                        or label_replace(drift_window_time_span_seconds, "metric", "drift_window_time_span_seconds", "__name__", ".*")
+                        or label_replace(drift_max_event_gap_seconds, "metric", "drift_max_event_gap_seconds", "__name__", ".*")
+                        or label_replace(drift_invalid_event_time_rate, "metric", "drift_invalid_event_time_rate", "__name__", ".*")
+                        or label_replace(drift_late_event_rate, "metric", "drift_late_event_rate", "__name__", ".*")
+                      )
+                      >= bool on(metric)
+                      drift_stream_threshold{level="critical"}
+                    )
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: stream_status
+            - refId: metric_value
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: cfxnbdacrd728d
+              model:
+                editorMode: code
+                expr: |-
+                    label_replace(drift_event_time_lag_seconds, "metric", "drift_event_time_lag_seconds", "__name__", ".*")
+                    or label_replace(drift_window_time_span_seconds, "metric", "drift_window_time_span_seconds", "__name__", ".*")
+                    or label_replace(drift_max_event_gap_seconds, "metric", "drift_max_event_gap_seconds", "__name__", ".*")
+                    or label_replace(drift_invalid_event_time_rate, "metric", "drift_invalid_event_time_rate", "__name__", ".*")
+                    or label_replace(drift_late_event_rate, "metric", "drift_late_event_rate", "__name__", ".*")
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: metric_value
+            - refId: warning_threshold
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: cfxnbdacrd728d
+              model:
+                editorMode: code
+                expr: max by (metric) (drift_stream_threshold{level="warning"})
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: warning_threshold
+            - refId: critical_threshold
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: cfxnbdacrd728d
+              model:
+                editorMode: code
+                expr: max by (metric) (drift_stream_threshold{level="critical"})
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: critical_threshold
+            - refId: C
+              queryType: expression
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 1
+                        type: eq
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: stream_status
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          for: 5m
+          noDataState: KeepLast
+          execErrState: KeepLast
+          annotations:
+            action: Inspect Stream Health and the producer/consumer event-time pipeline.
+            list_label: metric
+            list_title: Stream metrics above warning threshold
+            list_value: 'value={{ printf "%.4f" $values.metric_value.Value }}, warning={{ printf "%.4f" $values.warning_threshold.Value }}, critical={{ printf "%.4f" $values.critical_threshold.Value }}'
+            summary: The following stream metrics have remained in warning status for at least 5 minutes.
+          labels:
+            domain: stream_health
+            owner: ml_monitoring
+            scope: list
+            service: drift_guardian
+            severity: warning
+          isPaused: false
+          notification_settings:
+            receiver: Drift Guardian Alerts Telegram
+            active_time_intervals:
+                - working-hours
+        - uid: streamcrit01
+          title: Stream Health – Critical
+          condition: C
+          data:
+            - refId: stream_status
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: cfxnbdacrd728d
+              model:
+                editorMode: code
+                expr: |-
+                    # Calculate 0/1/2 status for every configured stream metric
+                    (
+                      (
+                        label_replace(drift_event_time_lag_seconds, "metric", "drift_event_time_lag_seconds", "__name__", ".*")
+                        or label_replace(drift_window_time_span_seconds, "metric", "drift_window_time_span_seconds", "__name__", ".*")
+                        or label_replace(drift_max_event_gap_seconds, "metric", "drift_max_event_gap_seconds", "__name__", ".*")
+                        or label_replace(drift_invalid_event_time_rate, "metric", "drift_invalid_event_time_rate", "__name__", ".*")
+                        or label_replace(drift_late_event_rate, "metric", "drift_late_event_rate", "__name__", ".*")
+                      )
+                      >= bool on(metric)
+                      drift_stream_threshold{level="warning"}
+                    )
+                    + on(metric)
+                    (
+                      (
+                        label_replace(drift_event_time_lag_seconds, "metric", "drift_event_time_lag_seconds", "__name__", ".*")
+                        or label_replace(drift_window_time_span_seconds, "metric", "drift_window_time_span_seconds", "__name__", ".*")
+                        or label_replace(drift_max_event_gap_seconds, "metric", "drift_max_event_gap_seconds", "__name__", ".*")
+                        or label_replace(drift_invalid_event_time_rate, "metric", "drift_invalid_event_time_rate", "__name__", ".*")
+                        or label_replace(drift_late_event_rate, "metric", "drift_late_event_rate", "__name__", ".*")
+                      )
+                      >= bool on(metric)
+                      drift_stream_threshold{level="critical"}
+                    )
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: stream_status
+            - refId: metric_value
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: cfxnbdacrd728d
+              model:
+                editorMode: code
+                expr: |-
+                    label_replace(drift_event_time_lag_seconds, "metric", "drift_event_time_lag_seconds", "__name__", ".*")
+                    or label_replace(drift_window_time_span_seconds, "metric", "drift_window_time_span_seconds", "__name__", ".*")
+                    or label_replace(drift_max_event_gap_seconds, "metric", "drift_max_event_gap_seconds", "__name__", ".*")
+                    or label_replace(drift_invalid_event_time_rate, "metric", "drift_invalid_event_time_rate", "__name__", ".*")
+                    or label_replace(drift_late_event_rate, "metric", "drift_late_event_rate", "__name__", ".*")
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: metric_value
+            - refId: warning_threshold
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: cfxnbdacrd728d
+              model:
+                editorMode: code
+                expr: max by (metric) (drift_stream_threshold{level="warning"})
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: warning_threshold
+            - refId: critical_threshold
+              relativeTimeRange:
+                from: 600
+                to: 0
+              datasourceUid: cfxnbdacrd728d
+              model:
+                editorMode: code
+                expr: max by (metric) (drift_stream_threshold{level="critical"})
+                instant: true
+                intervalMs: 1000
+                legendFormat: __auto
+                maxDataPoints: 43200
+                range: false
+                refId: critical_threshold
+            - refId: C
+              queryType: expression
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 2
+                        type: eq
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: stream_status
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          for: 1m
+          noDataState: KeepLast
+          execErrState: KeepLast
+          annotations:
+            action: Inspect Stream Health and the producer/consumer event-time pipeline immediately.
+            list_label: metric
+            list_title: Stream metrics above critical threshold
+            list_value: 'value={{ printf "%.4f" $values.metric_value.Value }}, warning={{ printf "%.4f" $values.warning_threshold.Value }}, critical={{ printf "%.4f" $values.critical_threshold.Value }}'
+            summary: The following stream metrics have remained in critical status for at least 1 minute.
+          labels:
+            domain: stream_health
+            owner: ml_monitoring
+            scope: list
+            service: drift_guardian
+            severity: critical
+          isPaused: false
+          notification_settings:
+            receiver: Drift Guardian Alerts Telegram
+    - orgId: 1
+      name: Prediction Drift
       folder: Drift Guardian
       interval: 10s
       rules:
@@ -249,7 +546,21 @@ groups:
               datasourceUid: cfxnbdacrd728d
               model:
                 editorMode: code
-                expr: max by (feature, metric) (drift_status{feature="prediction"} and on(feature, type, metric) (drift_status_streak{feature="prediction",status="warning"} >= 4))
+                expr: |-
+                    # Current warning prediction metrics after at least 4 consecutive windows
+                    max by (feature, metric) (
+                      drift_status{feature="prediction"}
+                      and on(feature, type, metric)
+                      (drift_status_streak{feature="prediction", status="warning"} >= 4)
+                      # Require warning status to have persisted for at least 5 minutes
+                      and on(feature, type, metric)
+                      (min_over_time((drift_status{feature="prediction"} == bool 1)[5m:]) == 1)
+                      and on(feature, type, metric)
+                      (drift_status{feature="prediction"} offset 5m == 1)
+                    )
+                    # Return 0 for prediction metrics that do not meet the streak condition
+                    or on(feature, metric)
+                    (0 * max by (feature, metric) (drift_status{feature="prediction"}))
                 instant: true
                 intervalMs: 1000
                 legendFormat: __auto
@@ -299,8 +610,9 @@ groups:
                 maxDataPoints: 43200
                 refId: C
                 type: threshold
-          noDataState: NoData
-          execErrState: Error
+          for: 0s
+          noDataState: KeepLast
+          execErrState: KeepLast
           annotations:
             action: Inspect the affected metrics in the Prediction Drift section.
             list_label: metric
@@ -317,7 +629,7 @@ groups:
           notification_settings:
             receiver: Drift Guardian Alerts Telegram
             active_time_intervals:
-                - working-hours-morning
+                - working-hours
         - uid: afz3v51xspjpca
           title: Prediction Drift Status – Warning
           condition: C
@@ -329,7 +641,20 @@ groups:
               datasourceUid: cfxnbdacrd728d
               model:
                 editorMode: code
-                expr: max(drift_status_feature{feature="prediction"} and on(feature, type) (drift_status_feature_streak{feature="prediction",status="warning"} >= 4))
+                expr: |-
+                    # Current prediction status after at least 4 consecutive warning windows
+                    max(
+                      drift_status_feature{feature="prediction"}
+                      and on(feature, type)
+                      (drift_status_feature_streak{feature="prediction", status="warning"} >= 4)
+                      # Require warning status to have persisted for at least 5 minutes
+                      and on(feature, type)
+                      (min_over_time((drift_status_feature{feature="prediction"} == bool 1)[5m:]) == 1)
+                      and on(feature, type)
+                      (drift_status_feature{feature="prediction"} offset 5m == 1)
+                    )
+                    # Return 0 while prediction status exists but does not meet the streak condition
+                    or (0 * max(drift_status_feature{feature="prediction"}))
                 instant: true
                 intervalMs: 1000
                 legendFormat: __auto
@@ -379,8 +704,9 @@ groups:
                 maxDataPoints: 43200
                 refId: C
                 type: threshold
-          noDataState: NoData
-          execErrState: Error
+          for: 0s
+          noDataState: KeepLast
+          execErrState: KeepLast
           annotations:
             action: Inspect the affected metrics in the Prediction Drift section.
             description: |-
@@ -396,7 +722,7 @@ groups:
           notification_settings:
             receiver: Drift Guardian Alerts Telegram
             active_time_intervals:
-                - working-hours-morning
+                - working-hours
         - uid: cfz3xhezruigwd
           title: Prediction Drift Metrics – Critical
           condition: C
@@ -408,7 +734,21 @@ groups:
               datasourceUid: cfxnbdacrd728d
               model:
                 editorMode: code
-                expr: max by (feature, metric) (drift_status{feature="prediction"} and on(feature, type, metric) (drift_status_streak{feature="prediction",status="critical"} >= 4))
+                expr: |-
+                    # Current critical prediction metrics after at least 4 consecutive windows
+                    max by (feature, metric) (
+                      drift_status{feature="prediction"}
+                      and on(feature, type, metric)
+                      (drift_status_streak{feature="prediction", status="critical"} >= 4)
+                      # Require critical status to have persisted for at least 5 minutes
+                      and on(feature, type, metric)
+                      (min_over_time((drift_status{feature="prediction"} == bool 2)[5m:]) == 1)
+                      and on(feature, type, metric)
+                      (drift_status{feature="prediction"} offset 5m == 2)
+                    )
+                    # Return 0 for prediction metrics that do not meet the streak condition
+                    or on(feature, metric)
+                    (0 * max by (feature, metric) (drift_status{feature="prediction"}))
                 instant: true
                 intervalMs: 1000
                 legendFormat: __auto
@@ -458,8 +798,9 @@ groups:
                 maxDataPoints: 43200
                 refId: C
                 type: threshold
-          noDataState: NoData
-          execErrState: Error
+          for: 0s
+          noDataState: KeepLast
+          execErrState: KeepLast
           annotations:
             action: Inspect the affected metrics in the Prediction Drift section.
             list_label: metric
@@ -486,7 +827,20 @@ groups:
               datasourceUid: cfxnbdacrd728d
               model:
                 editorMode: code
-                expr: max(drift_status_feature{feature="prediction"} and on(feature, type) (drift_status_feature_streak{feature="prediction",status="critical"} >= 4))
+                expr: |-
+                    # Current prediction status after at least 4 consecutive critical windows
+                    max(
+                      drift_status_feature{feature="prediction"}
+                      and on(feature, type)
+                      (drift_status_feature_streak{feature="prediction", status="critical"} >= 4)
+                      # Require critical status to have persisted for at least 5 minutes
+                      and on(feature, type)
+                      (min_over_time((drift_status_feature{feature="prediction"} == bool 2)[5m:]) == 1)
+                      and on(feature, type)
+                      (drift_status_feature{feature="prediction"} offset 5m == 2)
+                    )
+                    # Return 0 while prediction status exists but does not meet the streak condition
+                    or (0 * max(drift_status_feature{feature="prediction"}))
                 instant: true
                 intervalMs: 1000
                 legendFormat: __auto
@@ -536,8 +890,9 @@ groups:
                 maxDataPoints: 43200
                 refId: C
                 type: threshold
-          noDataState: NoData
-          execErrState: Error
+          for: 0s
+          noDataState: KeepLast
+          execErrState: KeepLast
           annotations:
             action: Inspect the affected metrics in the Prediction Drift section.
             description: |-
@@ -553,7 +908,7 @@ groups:
           notification_settings:
             receiver: Drift Guardian Alerts Telegram
     - orgId: 1
-      name: Window Drift (1m)
+      name: Window Drift
       folder: Drift Guardian
       interval: 10s
       rules:
@@ -568,7 +923,18 @@ groups:
               datasourceUid: cfxnbdacrd728d
               model:
                 editorMode: code
-                expr: max(drift_overall_status) and on() (max(drift_overall_status_streak{status="critical"}) >= 4)
+                expr: |-
+                    # Current overall status after at least 4 consecutive critical windows
+                    max(drift_overall_status)
+                    and on()
+                    (max(drift_overall_status_streak{status="critical"}) >= 4)
+                    # Require critical status to have persisted for at least 5 minutes
+                    and on()
+                    (min_over_time((max(drift_overall_status) == bool 2)[5m:]) == 1)
+                    and on()
+                    (max(drift_overall_status offset 5m) == 2)
+                    # Return 0 while overall status exists but does not meet the streak condition
+                    or (0 * max(drift_overall_status))
                 instant: true
                 intervalMs: 1000
                 legendFormat: __auto
@@ -669,6 +1035,7 @@ groups:
                 maxDataPoints: 43200
                 refId: C
                 type: threshold
+          for: 0s
           noDataState: KeepLast
           execErrState: KeepLast
           annotations:
@@ -699,7 +1066,18 @@ groups:
               datasourceUid: cfxnbdacrd728d
               model:
                 editorMode: code
-                expr: max(drift_overall_status) and on() (max(drift_overall_status_streak{status="warning"}) >= 4)
+                expr: |-
+                    # Current overall status after at least 4 consecutive warning windows
+                    max(drift_overall_status)
+                    and on()
+                    (max(drift_overall_status_streak{status="warning"}) >= 4)
+                    # Require warning status to have persisted for at least 5 minutes
+                    and on()
+                    (min_over_time((max(drift_overall_status) == bool 1)[5m:]) == 1)
+                    and on()
+                    (max(drift_overall_status offset 5m) == 1)
+                    # Return 0 while overall status exists but does not meet the streak condition
+                    or (0 * max(drift_overall_status))
                 instant: true
                 intervalMs: 1000
                 legendFormat: __auto
@@ -783,6 +1161,7 @@ groups:
                 maxDataPoints: 43200
                 refId: C
                 type: threshold
+          for: 0s
           noDataState: KeepLast
           execErrState: KeepLast
           annotations:
@@ -800,10 +1179,10 @@ groups:
           isPaused: false
           notification_settings:
             receiver: Drift Guardian Alerts Telegram
-            group_wait: 5s
+            group_wait: 1m
             group_interval: 5s
             active_time_intervals:
-                - working-hours-morning
+                - working-hours
         - uid: efz3e3h2h3gn4b
           title: Feature Drift – Critical
           condition: C
@@ -815,7 +1194,21 @@ groups:
               datasourceUid: cfxnbdacrd728d
               model:
                 editorMode: code
-                expr: max by (feature) (drift_status_feature{feature!="prediction"} and on(feature, type) (drift_status_feature_streak{feature!="prediction",status="critical"} >= 4))
+                expr: |-
+                    # Current feature status after at least 4 consecutive critical windows
+                    max by (feature) (
+                      drift_status_feature{feature!="prediction"}
+                      and on(feature, type)
+                      (drift_status_feature_streak{feature!="prediction", status="critical"} >= 4)
+                      # Require critical status to have persisted for at least 5 minutes
+                      and on(feature, type)
+                      (min_over_time((drift_status_feature{feature!="prediction"} == bool 2)[5m:]) == 1)
+                      and on(feature, type)
+                      (drift_status_feature{feature!="prediction"} offset 5m == 2)
+                    )
+                    # Return 0 for features that do not meet the streak condition
+                    or on(feature)
+                    (0 * max by (feature) (drift_status_feature{feature!="prediction"}))
                 instant: true
                 intervalMs: 1000
                 legendFormat: __auto
@@ -874,8 +1267,9 @@ groups:
                 maxDataPoints: 43200
                 refId: C
                 type: threshold
-          noDataState: NoData
-          execErrState: Error
+          for: 0s
+          noDataState: KeepLast
+          execErrState: KeepLast
           annotations:
             action: Inspect the affected features in the Feature-level Drift section.
             list_label: feature
@@ -902,7 +1296,21 @@ groups:
               datasourceUid: cfxnbdacrd728d
               model:
                 editorMode: code
-                expr: max by (feature) (drift_status_feature{feature!="prediction"} and on(feature, type) (drift_status_feature_streak{feature!="prediction",status="warning"} >= 4))
+                expr: |-
+                    # Current feature status after at least 4 consecutive warning windows
+                    max by (feature) (
+                      drift_status_feature{feature!="prediction"}
+                      and on(feature, type)
+                      (drift_status_feature_streak{feature!="prediction", status="warning"} >= 4)
+                      # Require warning status to have persisted for at least 5 minutes
+                      and on(feature, type)
+                      (min_over_time((drift_status_feature{feature!="prediction"} == bool 1)[5m:]) == 1)
+                      and on(feature, type)
+                      (drift_status_feature{feature!="prediction"} offset 5m == 1)
+                    )
+                    # Return 0 for features that do not meet the streak condition
+                    or on(feature)
+                    (0 * max by (feature) (drift_status_feature{feature!="prediction"}))
                 instant: true
                 intervalMs: 1000
                 legendFormat: __auto
@@ -961,8 +1369,9 @@ groups:
                 maxDataPoints: 43200
                 refId: C
                 type: threshold
-          noDataState: NoData
-          execErrState: Error
+          for: 0s
+          noDataState: KeepLast
+          execErrState: KeepLast
           annotations:
             action: Inspect the affected features in the Feature-level Drift section.
             list_label: feature
@@ -979,4 +1388,4 @@ groups:
           notification_settings:
             receiver: Drift Guardian Alerts Telegram
             active_time_intervals:
-                - working-hours-morning
+                - working-hours

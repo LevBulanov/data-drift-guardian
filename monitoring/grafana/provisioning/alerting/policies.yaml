@@ -14,7 +14,7 @@ policies:
             - - severity
               - '='
               - critical
-          group_wait: 10s
+          group_wait: 1m
           group_interval: 1m
           repeat_interval: 1m
         - receiver: Drift Guardian Alerts Telegram
@@ -26,8 +26,8 @@ policies:
               - '='
               - warning
           active_time_intervals:
-            - working-hours-morning
-          group_wait: 10s
+            - working-hours
+          group_wait: 1m
           group_interval: 1m
           repeat_interval: 1m
       group_wait: 30s

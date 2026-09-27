@@ -1,6 +1,14 @@
 apiVersion: 1
-muteTimes:
+deleteMuteTimes:
     - orgId: 1
       name: working-hours-morning
+muteTimes:
+    - orgId: 1
+      name: working-hours
       time_intervals:
-        - location: Europe/Moscow
+        - times:
+            - start_time: '10:00'
+              end_time: '18:00'
+          weekdays:
+            - monday:friday
+          location: Europe/Moscow
