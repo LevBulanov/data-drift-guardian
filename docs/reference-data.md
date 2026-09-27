@@ -30,11 +30,11 @@ REFERENCE_DATA_PATH=/app/data/reference.csv
 data/reference.csv
 ```
 
-Папка `data/` находится в `.gitignore`, поэтому reference-файла в свежем клоне репозитория **нет** — его нужно подготовить самостоятельно.
+reference-файла в свежем клоне репозитория **нет** — его нужно подготовить самостоятельно.
 
 > Файл должен существовать **до запуска analyzer**. При его отсутствии контейнер не стартует с ошибкой `reference dataset not found`.
 
-### Вариант 1: свой CSV
+### Cвой CSV
 
 ```bash
 mkdir -p data
@@ -51,21 +51,11 @@ Copy-Item C:\path\to\your.csv .\data\reference.csv
 
 </details>
 
-После этого сгенерируйте конфиг под свои колонки — checked-in `config/config.yaml` рассчитан на `age`, `income`, `country` и `prediction_score` [[1]](file://README.md):
+После этого сгенерируйте конфиг под свои колонки — checked-in `config/config.yaml` рассчитан на `age`, `income`, `country` и `prediction_score` :
 
 ```bash
 uv run python tools/build_config.py
 ```
-
-### Вариант 2: другой путь
-
-Если держать данные в `data/reference.csv` неудобно, переопределите переменную в `.env`:
-
-```env
-REFERENCE_DATA_PATH=/app/data/my_baseline.csv
-```
-
-Путь указывается **внутри контейнера**, поэтому файл должен попадать туда через тот же volume-маппинг, что и `data/`.
 
 ---
 
@@ -77,7 +67,7 @@ REFERENCE_DATA_PATH=/app/data/my_baseline.csv
 uv run python tools/get_demo_data.py
 ```
 
-Скрипт читает `DATASET_URL` из локального `.env`, при необходимости создаёт папку `data/` и сохраняет результат как `data/reference.csv` [[1]](file://README.md).
+Скрипт читает `DATASET_URL` из локального `.env`, при необходимости создаёт папку `data/` и сохраняет результат как `data/reference.csv` .
 
 ### Прямая ссылка
 
@@ -87,7 +77,7 @@ DATASET_URL=https://example.org/reference.csv
 
 ### Google Drive
 
-Поддерживается стандартный share-формат [[1]](file://README.md):
+Поддерживается стандартный share-формат :
 
 ```env
 DATASET_URL=https://drive.google.com/file/d/<FILE_ID>/view
@@ -97,7 +87,7 @@ DATASET_URL=https://drive.google.com/file/d/<FILE_ID>/view
 
 ### Архивы
 
-Скрипт распознаёт ZIP и GZIP и извлекает данные в `data/reference.csv` [[1]](file://README.md). Отдельного флага для этого не нужно — тип определяется автоматически.
+Скрипт распознаёт ZIP и GZIP и извлекает данные в `data/reference.csv` . Отдельного флага для этого не нужно — тип определяется автоматически.
 
 ### Проверка результата
 
@@ -126,7 +116,7 @@ Get-Content .\data\reference.csv -TotalCount 3
 
 Analyzer считает метрики только для features, перечисленных в конфиге. Колонка, которой нет в reference, не будет мониториться, даже если она присутствует в realtime-событиях.
 
-Обратная ситуация тоже важна: **demo-producer применяет drift-правила только к features, присутствующим в reference dataset** [[1]](file://README.md). Правило для `feature_1` при датасете с колонкой `age` будет молча пропущено. См. [docs/demo-producer.md](demo-producer.md).
+Обратная ситуация тоже важна: **demo-producer применяет drift-правила только к features, присутствующим в reference dataset** . Правило для `feature_1` при датасете с колонкой `age` будет молча пропущено. См. [docs/demo-producer.md](demo-producer.md).
 
 ### Prediction column
 
@@ -144,8 +134,8 @@ prediction_metrics:
 
 Два ограничения снизу:
 
-- **для AV** — reference должен содержать достаточно строк для `n_splits` cross-validation. При недостатке AV не запустится, и `drift_av_available` останется `0` [[1]](file://README.md);
-- **для калибровки thresholds** — генератор конфига по умолчанию нарезает reference на bootstrap-окна [[1]](file://README.md). На маленьком датасете калибровка даст шумные пороги.
+- **для AV** — reference должен содержать достаточно строк для `n_splits` cross-validation. При недостатке AV не запустится, и `drift_av_available` останется `0` ;
+- **для калибровки thresholds** — генератор конфига по умолчанию нарезает reference на bootstrap-окна . На маленьком датасете калибровка даст шумные пороги.
 
 Сверху ограничение есть только у AV: параметр `max_samples` (по умолчанию `50000`) подрезает выборку перед обучением классификатора. На сами drift-метрики это не влияет — они считаются по всему reference.
 
@@ -202,7 +192,7 @@ Test-Path .\data\reference.csv
 
 </details>
 
-Если файла нет — положите свой CSV или запустите `tools/get_demo_data.py` [[1]](file://README.md). Если файл есть, но analyzer его не видит, проверьте `REFERENCE_DATA_PATH` и volume-маппинг `data/` в Compose.
+Если файла нет — положите свой CSV или запустите `tools/get_demo_data.py` . Если файл есть, но analyzer его не видит, проверьте `REFERENCE_DATA_PATH` и volume-маппинг `data/` в Compose.
 
 **Метрики для части features не появляются.** Имя колонки в reference, в конфиге и в Kafka-событиях должно совпадать до символа. Проверьте заголовок CSV:
 
@@ -210,9 +200,9 @@ Test-Path .\data\reference.csv
 head -n 1 data/reference.csv
 ```
 
-**PSI меняется, но статус остаётся `OK`.** Ожидаемо, если current window статистически близок к reference [[1]](file://README.md). Для демонстрации переходов `OK → Warning → Critical` настройте drift-сценарий producer'а под реальные колонки датасета — см. [docs/demo-producer.md](demo-producer.md).
+**PSI меняется, но статус остаётся `OK`.** Ожидаемо, если current window статистически близок к reference . Для демонстрации переходов `OK → Warning → Critical` настройте drift-сценарий producer'а под реальные колонки датасета — см. [docs/demo-producer.md](demo-producer.md).
 
-**`drift_av_available = 0` не меняется.** Среди причин — недостаточный размер reference для `n_splits` [[1]](file://README.md). Полный чеклист — [docs/adversarial-validation.md](adversarial-validation.md).
+**`drift_av_available = 0` не меняется.** Среди причин — недостаточный размер reference для `n_splits` . Полный чеклист — [docs/adversarial-validation.md](adversarial-validation.md).
 
 Остальные сценарии — [docs/troubleshooting.md](troubleshooting.md).
 

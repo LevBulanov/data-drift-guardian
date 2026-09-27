@@ -189,7 +189,7 @@ start_step: 1000
 ramp_steps: 0
 ```
 
-Полезно для проверки alert-логики: streak-условие требует 4 последовательных окна со статусом `warning`/`critical` [[1]](file://README.md), и при мгновенном скачке момент срабатывания alert'а предсказуем. См. [docs/alerting.md](alerting.md).
+Полезно для проверки alert-логики: streak-условие требует 4 последовательных окна со статусом `warning`/`critical` , и при мгновенном скачке момент срабатывания alert'а предсказуем. См. [docs/alerting.md](alerting.md).
 
 ### Довести метрику до `critical`
 
@@ -208,7 +208,7 @@ curl.exe -s http://localhost:8000/metrics | Select-String "drift_metric_value"
 
 </details>
 
-Сравните с `drift_resolved_threshold` — именно эти пороги фактически применяются к конкретной feature [[1]](file://README.md).
+Сравните с `drift_resolved_threshold` — именно эти пороги фактически применяются к конкретной feature .
 
 ### Разнести features по времени
 
@@ -237,9 +237,9 @@ docker compose --profile realtime --profile local-kafka restart drift-producer
 4. magnitude достаточна, чтобы метрика перешла порог
 ```
 
-Пункт 1 — самая частая причина: правило для отсутствующей feature пропускается без сообщения [[1]](file://README.md).
+Пункт 1 — самая частая причина: правило для отсутствующей feature пропускается без сообщения .
 
-**`PSI` меняется, но статус остаётся `OK`.** Ожидаемо, если окно всё ещё статистически близко к reference [[1]](file://README.md). Увеличьте `magnitude` или уменьшите `ramp_steps`.
+**`PSI` меняется, но статус остаётся `OK`.** Ожидаемо, если окно всё ещё статистически близко к reference . Увеличьте `magnitude` или уменьшите `ramp_steps`.
 
 **Analyzer не видит событий.** Это уже не про producer — проверьте, что оба сервиса поднялись и analyzer подключился к broker:
 
