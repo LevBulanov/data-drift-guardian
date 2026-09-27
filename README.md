@@ -77,20 +77,17 @@ Realtime-слой отвечает за Kafka ingestion, оконную обра
 ### Offline
 
 ```text
-reference_df + current_df
+OfflineWrapper(reference_df)
+          │
+          ├── analyze_df(current_df)
+          └── run_av(current_df) (опционально)
           │
           ▼
-    OfflineWrapper
-      ├── analyze_df() → drift report
-      └── run_av()     → ROC AUC + feature importance
+generate_html_report()
           │
           ▼
- generate_html_report()
-          │
-          ▼
-      HTML report
+     HTML report
 ```
-
 ---
 
 ## Быстрый старт
@@ -353,6 +350,8 @@ Analyzer и mock exporter скрейпятся как отдельные targets
 
 ## Offline report
 
+Офлайн-режим сравнивает готовые выборки `reference` и `current` без Kafka и Grafana. Он создаёт HTML-отчёт со сводкой Input Data Drift, таблицами по признакам и, если включён мониторинг предсказаний, разделом Prediction Drift. Adversarial Validation (AV) запускается по желанию.
+
 ```python
 import pandas as pd
 
@@ -360,19 +359,26 @@ from drift_guardian.analyzer.offline.offline_mode import OfflineWrapper
 from drift_guardian.config_handler.auto_config_builder import ConfigBuildOptions
 from drift_guardian.reporting import generate_html_report
 
+reference_df = pd.read_csv("data/reference.csv")
+current_df = pd.read_csv("data/current.csv")
+
 analyzer = OfflineWrapper(
-    reference_df=pd.read_csv("data/reference.csv"),
+    reference_df=reference_df,
     config_options=ConfigBuildOptions(
         prediction_enabled=True,
         prediction_score_column="prediction_score",
     ),
 )
 
-current_df = pd.read_csv("data/current.csv")
 report = analyzer.analyze_df(current_df)
-av_report = analyzer.run_av(current_df, prediction_col="prediction_score")
 
-generate_html_report(
+# Опционально: Adversarial Validation
+av_report = analyzer.run_av(
+    current_df,
+    prediction_col="prediction_score",
+)
+
+html_path = generate_html_report(
     report=report,
     av_report=av_report,
     dataset_name="Offline drift demo",
@@ -380,18 +386,9 @@ generate_html_report(
 )
 ```
 
-Отчёт содержит сводку input drift, feature-level таблицы, блок Prediction Drift и Adversarial Validation с top-10 drivers .
+HTML-отчёт будет сохранён в `reports/offline_drift_report.html`. Если AV не нужна, уберите вызов `run_av()` и аргумент `av_report`.
 
-Есть также CLI для рендера из сохранённого JSON:
-
-```bash
-uv run drift-guardian-report reports/mock_drift_report.json reports/offline_drift_report.html \
-  --dataset-name "Offline drift demo"
-```
-
-> CLI не принимает `av_report` — для секции Adversarial Validation используйте Python API или notebook .
-
-Runnable example: [`notebooks/02_offline_report.ipynb`](notebooks/02_offline_report.ipynb) (требует `uv sync --frozen --group notebooks`). Подробнее — [docs/offline.md](docs/offline.md).
+Пошаговый пример с искусственно созданными выборками — в [`notebooks/offline_report_demo.ipynb`](notebooks/offline_report_demo.ipynb). Для его запуска установите зависимости: `uv sync --frozen --group notebooks`. Описание API, состава отчёта и создания HTML из сохранённого JSON — в [docs/offline.md](docs/offline.md).
 
 ---
 
@@ -437,7 +434,10 @@ tools/
   get_demo_data.py                      # загрузка reference dataset по URL
   demo_producer/                        # локальный Kafka producer + drift scenario
 
-notebooks/02_offline_report.ipynb       # пример offline workflow
+notebooks/ 
+  demo_utils.py                         # данные для offline demo
+  offline_report_demo.ipynb             # пример offline-анализа и HTML-отчёта
+
 tests/integration/                      # Kafka integration tests via testcontainers
 ```
 

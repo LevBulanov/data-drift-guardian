@@ -1,4 +1,4 @@
-"""Generate a standalone HTML report from an offline drift-report."""
+"""Создание автономного HTML-отчёта по результатам офлайн-анализа дрифта."""
 
 from __future__ import annotations
 
@@ -45,7 +45,7 @@ PREDICTION_DETAILS = {
 
 
 def _status(value: Any) -> str:
-    """Normalize engine statuses to statuses supported by the report UI."""
+    """Привести статусы анализатора к статусам, поддерживаемым интерфейсом отчёта."""
     status = str(value or "unknown").lower()
     if status == "ok":
         return "passed"
@@ -53,7 +53,7 @@ def _status(value: Any) -> str:
 
 
 def _display(value: Any, *, decimals: int = 3) -> str:
-    """Format and escape a value for HTML output."""
+    """Форматировать значение и экранировать его для вывода в HTML."""
     if value is None:
         return "—"
     if isinstance(value, bool):
@@ -69,7 +69,7 @@ def _display(value: Any, *, decimals: int = 3) -> str:
 
 
 def _metric_label(name: str) -> str:
-    """Turn a metric key into a compact human-readable table heading."""
+    """Преобразовать ключ метрики в короткий заголовок таблицы."""
     labels = {
         "cardinality_ratio": "Card. ratio",
         "js_divergence": "JS div.",
@@ -93,7 +93,7 @@ def _summary_card(
     details: str = "",
     variant: str = "alert",
 ) -> str:
-    """Render one status/metric card."""
+    """Сформировать карточку статуса или метрики."""
     status_class = f" status-{_status(status)}" if status else ""
     label_html = (
         "" if variant == "overall" else f'<span class="summary-label">{escape(label)}</span>'
@@ -109,7 +109,7 @@ def _summary_card(
 
 
 def _roc_auc_card(value: Any, status: str) -> str:
-    """Render ROC AUC with the same threshold markers as metric cells."""
+    """Показать ROC AUC с теми же маркерами порогов, что и в ячейках метрик."""
     thresholds = "".join(
         [
             _threshold(AV_WARNING_THRESHOLD, "warning"),
@@ -165,7 +165,7 @@ def _metric_cell(metric: Any) -> str:
 
 
 def _metric_summary_card(name: str, metric: Any) -> str:
-    """Render one metric as a large summary card."""
+    """Сформировать сводную карточку метрики."""
     if isinstance(metric, Mapping):
         status = _status(metric.get("status"))
         value = metric.get("value")
@@ -190,7 +190,7 @@ def _metric_summary_card(name: str, metric: Any) -> str:
 
 
 def _metric_names(features: Mapping[str, Mapping[str, Any]]) -> list[str]:
-    """Return metric columns in their first-seen order."""
+    """Вернуть колонки метрик в порядке их первого появления."""
     names: list[str] = []
     for result in features.values():
         for metric_name in result.get("metrics", {}):
@@ -206,7 +206,7 @@ def _feature_table(
     title: str,
     features: Mapping[str, Mapping[str, Any]],
 ) -> str:
-    """Render a metric-column table for one feature type."""
+    """Сформировать таблицу метрик для одного типа признаков."""
     if not features:
         return ""
 
@@ -370,7 +370,7 @@ def render_report_html(
     dataset_name: str = "",
     av_report: Any = None,
 ) -> str:
-    """Build a complete responsive HTML document from a drift report."""
+    """Сформировать адаптивный HTML-документ из отчёта о дрифте."""
     metadata = report.get("metadata", {})
     features = report.get("features", {})
     prediction = report.get("prediction")
@@ -499,7 +499,7 @@ def generate_html_report(
     report_path: str | Path | None = None,
     css_path: str | Path = DEFAULT_CSS_PATH,
 ) -> Path:
-    """Generate an HTML report from a mapping or a JSON file."""
+    """Создать HTML-отчёт из словаря или JSON-файла."""
     if report_path is not None:
         if report is not None:
             raise ValueError("provide report or report_path, not both")
@@ -533,7 +533,7 @@ def display_html_report(
     width: str = "100%",
     height: int | str = 1200,
 ) -> None:
-    """Display a generated report in an isolated Jupyter iframe."""
+    """Показать созданный отчёт в изолированном iframe в Jupyter."""
     from IPython.display import HTML, display
 
     report_html = Path(report_path).read_text(encoding="utf-8")
@@ -549,7 +549,7 @@ def display_html_report(
 
 
 def main() -> None:
-    """CLI entry point for generating an offline HTML report."""
+    """Точка входа CLI для создания офлайн HTML-отчёта."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("report", type=Path, help="Path to drift_report.json")
     parser.add_argument("output", type=Path, help="Path to generated HTML")

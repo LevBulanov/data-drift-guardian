@@ -8,22 +8,26 @@
     --border-soft: #eeeeee;
     --text: #222222;
     --muted: #828282;
+
     --passed: #1e8846;
-    --passed-background: #f8fdf9;
-    --passed-border: #6fa784;
-    --passed-text: #14532d;
-    --warning: #ff8a00;
-    --warning-background: #fffdf5;
-    --warning-border: #cdb559;
-    --warning-text: #713f12;
-    --critical: #ef3f5d;
-    --critical-background: #fef5f5;
-    --critical-border: #cd7b7b;
-    --critical-text: #7f1d1d;
+    --passed-background: #f0faf3;
+    --passed-border: #91c9a3;
+    --passed-text: #166534;
+
+    --warning: #e58a00;
+    --warning-background: #fff8eb;
+    --warning-border: #e8bd70;
+    --warning-text: #c07300;
+
+    --critical: #df3651;
+    --critical-background: #fff1f3;
+    --critical-border: #e99aaa;
+    --critical-text: #a91f39;
+
     --unknown: #92929d;
-    --unknown-background: #f4f4f4;
-    --unknown-border: #dddddd;
-    --unknown-text: #333333;
+    --unknown-background: #f4f4f5;
+    --unknown-border: #d4d4d8;
+    --unknown-text: #52525b;
 }
 
 * { box-sizing: border-box; }

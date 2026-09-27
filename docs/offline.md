@@ -1,8 +1,8 @@
-# Offline analysis и HTML report
+# Офлайн-анализ и HTML-отчёт
 
-Offline-режим позволяет сравнить два готовых DataFrame без Kafka, Prometheus и Docker: прогнать drift-анализ, выполнить adversarial validation и получить самодостаточный HTML-отчёт.
+Офлайн-режим сравнивает готовые выборки `reference` и `current` без Kafka, Prometheus и Grafana. Анализатор рассчитывает метрики дрифта относительно reference-профиля и возвращает структурированный отчёт. Adversarial Validation (AV) можно запустить отдельно, а затем собрать результаты в автономный HTML-файл.
 
-Типичные сценарии — ретроспективный анализ, разовая проверка нового датасета, включение drift-отчёта в CI или передача результата коллегам, у которых нет доступа к Grafana.
+Сценарий подходит для разовой проверки данных, анализа исторических выборок и передачи отчёта без доступа к дашборду.
 
 ---
 
@@ -15,20 +15,30 @@ from drift_guardian.analyzer.offline.offline_mode import OfflineWrapper
 from drift_guardian.config_handler.auto_config_builder import ConfigBuildOptions
 from drift_guardian.reporting import generate_html_report
 
+# Подготовка reference и current
+reference_df = pd.read_csv("data/reference.csv")
+current_df = pd.read_csv("data/current.csv")
+
+# Шаг 1. Создание анализатора и reference-профиля
 analyzer = OfflineWrapper(
-    reference_df=pd.read_csv("data/reference.csv"),
+    reference_df=reference_df,
     config_options=ConfigBuildOptions(
         prediction_enabled=True,
         prediction_score_column="prediction_score",
     ),
 )
 
-current_df = pd.read_csv("data/current.csv")
-
+# Шаг 2. Анализ current-данных
 report = analyzer.analyze_df(current_df)
-av_report = analyzer.run_av(current_df, prediction_col="prediction_score")
 
-generate_html_report(
+# Опционально: Adversarial Validation
+av_report = analyzer.run_av(
+    current_df,
+    prediction_col="prediction_score",
+)
+
+# Шаг 3. Создание HTML-отчёта
+html_path = generate_html_report(
     report=report,
     av_report=av_report,
     dataset_name="Offline drift demo",
@@ -36,206 +46,105 @@ generate_html_report(
 )
 ```
 
-Установка зависимостей:
+Для сценария без AV уберите вызов `run_av()` и аргумент `av_report`. Если мониторинг предсказаний не нужен, не задавайте в `ConfigBuildOptions` параметры `prediction_enabled` и `prediction_score_column`.
 
-```bash
-uv sync --frozen
-```
+HTML-отчёт будет сохранён по пути `reports/offline_drift_report.html`. Этот же путь вернёт `generate_html_report()` в переменной `html_path`.
 
 ---
 
-## `OfflineWrapper`
+## Подготовка и анализ данных
 
-Обёртка над Core, принимающая reference как DataFrame вместо чтения CSV по `REFERENCE_DATA_PATH`.
+### Reference-профиль
 
-```python
-analyzer = OfflineWrapper(
-    reference_df=reference_df,
-    config_options=ConfigBuildOptions(...),
-)
-```
+`OfflineWrapper` принимает reference-выборку как `DataFrame`. Он использует готовую конфигурацию или создаёт её по `ConfigBuildOptions` и рассчитывает эталонные статистики по reference-данным. В примере включён мониторинг колонки `prediction_score`; остальные настройки берутся по умолчанию. Параметры автогенерации описаны в [configuration.md](configuration.md).
 
-Конфиг строится автоматически по переданному reference — отдельный `config/config.yaml` для offline не требуется. Это отличие от realtime, где analyzer читает checked-in конфиг.
+`current_df` — выборка для сравнения с reference. Её можно подготовить из CSV, Parquet или другого источника и передать как `DataFrame`. В обеих выборках должны присутствовать анализируемые признаки.
 
-### `ConfigBuildOptions`
-
-Управляет тем, что попадёт в автоматически построенный конфиг:
-
-```python
-ConfigBuildOptions(
-    prediction_enabled=True,
-    prediction_score_column="prediction_score",
-)
-```
-
-По умолчанию prediction monitoring выключен — чтобы получить в отчёте блок Prediction Drift, нужно передать оба параметра явно.
-
-Остальные опции те же, что у генератора конфига для realtime — см. [docs/configuration.md](configuration.md).
-
----
-
-## `analyze_df()`
+### Drift report
 
 ```python
 report = analyzer.analyze_df(current_df)
 ```
 
-Считает drift-метрики между reference и переданным DataFrame. Возвращает report-объект, пригодный для передачи в `generate_html_report()` или для сериализации в JSON.
+Метод рассчитывает настроенные метрики для `current_df`, сравнивает их с порогами reference-профиля и возвращает словарь `report`. В нём находятся метаданные, общий статус, статусы признаков, значения и статусы отдельных метрик, а при включённом мониторинге — результаты для предсказаний. Размер переданного `current_df` отражается в `window_size` отчёта.
 
-Ограничений на размер `current_df` нет: в отличие от realtime здесь нет понятия `WINDOW_SIZE`, и весь переданный набор трактуется как одно окно. Соответственно, чем он больше, тем стабильнее метрики — на малых выборках PSI и KS шумят.
+Описание метрик и порогов — в [metrics.md](metrics.md).
 
-Набор метрик и thresholds — [docs/metrics.md](metrics.md).
-
----
-
-## `run_av()`
+### Adversarial Validation (опционально)
 
 ```python
 av_report = analyzer.run_av(current_df, prediction_col="prediction_score")
 ```
 
-Выполняет adversarial validation: обучает LightGBM-классификатор, различающий reference и current, с cross-validation.
+AV обучает LightGBM различать строки `reference` и `current`. Метод возвращает кортеж из ROC AUC по out-of-fold предсказаниям и таблицы важности признаков для этого различения. Значение AUC около 0.5 означает, что модель почти не различает выборки; более высокое значение указывает на возможные различия. Это индикатор дрифта, а не оценка качества рабочей модели.
 
-Два отличия от realtime:
-
-**Нет расписания.** `interval_minutes` не действует — AV выполняется немедленно при каждом вызове.
-
-**Prediction column исключается явно.** В realtime это происходит автоматически по конфигу, здесь нужен аргумент `prediction_col`. Без него `prediction_score` попадёт в feature set AV и почти наверняка окажется в топе drivers, обессмыслив ranking.
-
-Интерпретация ROC AUC, CV diagnostics и driver consistency — [docs/adversarial-validation.md](adversarial-validation.md).
+В примере `prediction_score` исключается из признаков AV через `prediction_col`. Если такой колонки нет, этот аргумент можно не передавать. Подробнее — в [adversarial-validation.md](adversarial-validation.md).
 
 ---
 
-## `generate_html_report()`
+## HTML-отчёт
+
+`generate_html_report()` принимает словарь `report` или путь к сохранённому JSON-отчёту, встраивает CSS и записывает автономный HTML-файл. Функция возвращает путь к нему.
+
+| Параметр | Назначение |
+|---|---|
+| `report` | Результат `analyze_df()` либо путь к JSON-файлу |
+| `av_report` | Результат `run_av()`; при отсутствии раздел AV не создаётся |
+| `dataset_name` | Название датасета в заголовке |
+| `output_path` | Путь для записи HTML-файла |
+| `css_path` | Путь к CSS; по умолчанию используется стиль из пакета |
+
+В заголовке показаны название датасета, время анализа, размер текущей выборки и список анализируемых признаков. Затем идут разделы:
+
+- **Input Data Drift** — общий статус, число признаков со статусами `warning` и `critical`, а также количество метрик с этими статусами.
+- **Feature-level Drift** — отдельные таблицы для числовых и категориальных признаков. В ячейках указаны значения метрик и пороги `warning`/`critical`; цвет значения и маркер строки показывают статусы метрики и признака. Колонки формируются из метрик, присутствующих в результате анализа.
+- **Adversarial Validation** — статус AV, ROC AUC с порогами 0.60 и 0.75 и таблица до десяти признаков с наибольшей важностью. Раздел появляется, если передан `av_report`.
+- **Prediction Drift** — отдельный статус и карточки метрик предсказаний с их значениями и порогами. Раздел появляется, если данные предсказаний есть в `report`.
+
+HTML можно открыть в браузере или показать прямо в Jupyter:
+
+```python
+from drift_guardian.reporting import display_html_report
+
+display_html_report(html_path, height=1300)
+```
+
+### Из сохранённого JSON
+
+Если результат анализа уже сохранён, HTML можно создать без повторного расчёта метрик:
 
 ```python
 generate_html_report(
-    report=report,
-    av_report=av_report,
+    report="reports/drift_report.json",
     dataset_name="Offline drift demo",
     output_path="reports/offline_drift_report.html",
 )
 ```
 
-| Параметр | Обязателен | Назначение |
-|---|:---:|---|
-| `report` | да | результат `analyze_df()` |
-| `av_report` | нет | результат `run_av()` |
-| `dataset_name` | нет | заголовок отчёта |
-| `output_path` | да | путь для записи HTML |
+CLI принимает входной JSON и путь к выходному HTML. Он формирует отчёт из сохранённого drift report без отдельного `av_report`, поэтому раздел AV в таком варианте не появится.
 
-Без `av_report` секция Adversarial Validation просто не рендерится — остальной отчёт формируется нормально.
-
-### Состав отчёта
-
-**Input drift summary** — сводный статус и общая картина по входным признакам.
-
-**Feature-level таблицы** — значения метрик по каждой feature с применёнными thresholds. Для `chi2` подпись `χ² p-value`, чтобы значение не читалось по шкале «больше = хуже» — направление у этой метрики обратное.
-
-**Prediction Drift** — отдельный блок со status-card и карточками prediction-метрик. Появляется только при `prediction_enabled=True`. Не смешивается с таблицами input features, поскольку input drift и prediction drift означают разные вещи — см. [docs/metrics.md](metrics.md#prediction-drift).
-
-**Adversarial Validation** — ROC AUC и top-10 drift drivers.
-
-Отчёт самодостаточен: один HTML-файл без внешних зависимостей, открывается в браузере и пересылается как обычный файл.
+CLI создаёт HTML из сохранённого JSON-отчёта. Чтобы добавить результаты AV, используйте Python API: CLI пока не принимает `av_report`.
 
 ---
 
-## CLI
+## Демонстрационный ноутбук
 
-Для рендера отчёта из ранее сохранённого JSON:
-
-```bash
-uv run drift-guardian-report reports/mock_drift_report.json reports/offline_drift_report.html \
-  --dataset-name "Offline drift demo"
-```
-
-Аргументы позиционные: входной JSON, затем выходной HTML.
-
-> **CLI не принимает `av_report`.** Секция Adversarial Validation будет отсутствовать. Для отчёта с AV используйте Python API или notebook.
-
-Основное применение CLI — перерендерить отчёт из сохранённого результата, не пересчитывая метрики. Например, если нужно поменять `dataset_name` или отдать отчёт в другом оформлении.
-
----
-
-## Notebook
-
-```text
-notebooks/02_offline_report.ipynb
-```
-
-Runnable end-to-end пример: подготовка данных, `analyze_df()`, `run_av()`, генерация отчёта.
-
-Требует отдельной dependency group:
+[`notebooks/offline_report_demo.ipynb`](/notebooks/offline_report_demo.ipynb) последовательно создаёт две выборки с контролируемыми изменениями, запускает `analyze_df()` и AV, затем показывает полученный HTML-отчёт. Для запуска ноутбука установите зависимости группы `notebooks`:
 
 ```bash
 uv sync --frozen --group notebooks
 ```
 
----
+На примере двух искусственно созданных выборок ноутбук формирует отчёт ниже: в `current` заранее внесены изменения, поэтому можно сопоставить их с результатами drift-анализа.
 
-## Как получить `current_df`
+![Offline report screenshot](../images/offline_report_screenshot.jpg)
 
-Offline-режим ничего не знает о том, откуда взялись данные — нужен любой DataFrame с теми же колонками, что в reference.
-
-**Из CSV:**
-
-```python
-current_df = pd.read_csv("data/current.csv")
-```
-
-**Срез по времени из одной таблицы.** Частый случай — reference и current выделяются из одного исторического датасета:
-
-```python
-df = pd.read_csv("data/history.csv", parse_dates=["event_time"])
-
-reference_df = df[df["event_time"] < "2026-08-01"]
-current_df = df[df["event_time"] >= "2026-09-01"]
-```
-
-Колонку с временем стоит исключить из features конфига — иначе она сама будет выглядеть как drift по определению.
-
-**Из Parquet, БД, любого источника.** Ограничение только одно: совпадение имён колонок с reference. Несовпадение проявится не ошибкой, а отсутствующей метрикой.
-
----
-
-## Связь с realtime
-
-Оба режима используют один analyzer/Core, поэтому drift-метрики и thresholds считаются идентично. Различия:
-
-| | Offline | Realtime |
-|---|---|---|
-| источник reference | `reference_df` в конструкторе | CSV по `REFERENCE_DATA_PATH` |
-| конфиг | строится из `ConfigBuildOptions` | `config/config.yaml` |
-| источник current | любой DataFrame | Kafka window |
-| размер окна | весь `current_df` | `WINDOW_SIZE` |
-| расписание AV | нет, по вызову | `interval_minutes` |
-| исключение prediction из AV | аргумент `prediction_col` | автоматически по конфигу |
-| вывод | HTML-файл | Prometheus → Grafana |
-
-Практическое следствие: offline-режим удобен для подбора thresholds. Прогоните несколько исторических периодов, посмотрите фактические значения метрик и уже осознанно задайте пороги в `config/config.yaml` для realtime.
-
----
-
-## Диагностика
-
-**Секция Adversarial Validation отсутствует в отчёте.** Либо `av_report` не передан в `generate_html_report()`, либо использовался CLI, который этот аргумент не поддерживает.
-
-**Блок Prediction Drift не появился.** Проверьте, что в `ConfigBuildOptions` переданы оба параметра — `prediction_enabled=True` и `prediction_score_column`. По умолчанию prediction monitoring выключен.
-
-**Метрики только для части колонок.** Конфиг строится по reference: колонки, отсутствующие в `reference_df`, не мониторятся. Сверьте наборы колонок обоих DataFrame.
-
-**`run_av()` падает или даёт неинформативный результат.** Проверьте размер выборок — для cross-validation нужно достаточно строк в обеих. Требования — [docs/adversarial-validation.md](adversarial-validation.md).
-
-**ROC AUC близок к 1.0, в топе drivers — одна колонка.** Признак утечки: в feature set попал идентификатор, timestamp или сама prediction column. Исключите такие колонки или передайте `prediction_col`.
-
-Остальные сценарии — [docs/troubleshooting.md](troubleshooting.md).
 
 ---
 
 ## Связанные документы
 
-- [docs/metrics.md](metrics.md) — drift-метрики, thresholds, prediction drift
-- [docs/adversarial-validation.md](adversarial-validation.md) — AV, интерпретация метрик
-- [docs/configuration.md](configuration.md) — `ConfigBuildOptions` и генерация конфига
-- [docs/reference-data.md](reference-data.md) — подготовка reference
-- [docs/realtime.md](realtime.md) — realtime-эквивалент
+- [metrics.md](metrics.md) — drift-метрики и пороги
+- [adversarial-validation.md](adversarial-validation.md) — метод AV и интерпретация результата
+- [configuration.md](configuration.md) — настройки конфигурации
+- [reference-data.md](reference-data.md) — подготовка reference-данных
