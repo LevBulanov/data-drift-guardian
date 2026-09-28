@@ -493,5 +493,5 @@ tests/integration/                      # Kafka integration tests via testcontai
 - [Дмитрий Савич](https://github.com/SvgPrizrak) — **Real-time Pipeline**.
   Потоковая часть (Kafka + Consumer + Prometheus): producer, consumer, window, экспорт метрик в Prometheus, Docker Compose, тесты, документация.
 
-- [Юлия Никитина](https://https://github.com/niki3080) — **Визуализация + AV**.
+- [Юлия Никитина](https://github.com/niki3080) — **Визуализация + AV**.
   Grafana dashboard, алерты, экспорт offline-отчетов, batch adversarial validation, тесты, документация.
