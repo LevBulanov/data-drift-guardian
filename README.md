@@ -483,3 +483,15 @@ tests/integration/                      # Kafka integration tests via testcontai
 | [docs/offline.md](docs/offline.md) | offline API, HTML report, CLI |
 | [docs/alerting.md](docs/alerting.md) | Grafana provisioning, streak-логика, Telegram |
 | [docs/troubleshooting.md](docs/troubleshooting.md) | диагностика типичных проблем |
+
+
+## Авторы
+
+- [Лев Буланов](https://github.com/Starkych) — **Core Metrics + Profiling + Config**.
+  Переиспользуемое ядро: метрики, профайлер и чекер, YAML-конфиг, registry, тесты, документация.
+
+- [Дмитрий Савич](https://github.com/user2) — **Real-time Pipeline**.
+  Потоковая часть (Kafka + Consumer + Prometheus): producer, consumer, window, экспорт метрик в Prometheus, Docker Compose, тесты, документация.
+
+- [Юлия Никитина](https://github.com/SvgPrizrak) — **Визуализация + AV**.
+  Grafana dashboard, алерты, экспорт offline-отчетов, batch adversarial validation, тесты, документация.
