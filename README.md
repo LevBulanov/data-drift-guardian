@@ -490,8 +490,8 @@ tests/integration/                      # Kafka integration tests via testcontai
 - [Лев Буланов](https://github.com/Starkych) — **Core Metrics + Profiling + Config**.
   Переиспользуемое ядро: метрики, профайлер и чекер, YAML-конфиг, registry, тесты, документация.
 
-- [Дмитрий Савич](https://github.com/user2) — **Real-time Pipeline**.
+- [Дмитрий Савич](https://github.com/SvgPrizrak) — **Real-time Pipeline**.
   Потоковая часть (Kafka + Consumer + Prometheus): producer, consumer, window, экспорт метрик в Prometheus, Docker Compose, тесты, документация.
 
-- [Юлия Никитина](https://github.com/SvgPrizrak) — **Визуализация + AV**.
+- [Юлия Никитина](https://https://github.com/niki3080) — **Визуализация + AV**.
   Grafana dashboard, алерты, экспорт offline-отчетов, batch adversarial validation, тесты, документация.
