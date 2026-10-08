@@ -487,7 +487,7 @@ tests/integration/                      # Kafka integration tests via testcontai
 
 ## Авторы
 
-- [Лев Буланов](https://github.com/Starkych) — **Core Metrics + Profiling + Config**.
+- [Лев Буланов](https://github.com/LevBulanov) — **Core Metrics + Profiling + Config**.
   Переиспользуемое ядро: метрики, профайлер и чекер, YAML-конфиг, registry, тесты, документация.
 
 - [Дмитрий Савич](https://github.com/SvgPrizrak) — **Real-time Pipeline**.
